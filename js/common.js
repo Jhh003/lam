@@ -3,7 +3,7 @@
     // 获取当前时间的函数，优先使用API获取服务器时间，失败则回退到本地时间
     function getCurrentTime() {
         // 尝试从API获取服务器时间
-        return fetch('https://worldtimeapi.org/api/ip')
+        return fetch('https://cn.apihz.cn/api/time/getapi.php?id=10010737&key=949afa1fb7d14d5ea210b69a761595a5&type=20')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('API响应失败');
@@ -11,8 +11,9 @@
                 return response.json();
             })
             .then(data => {
-                // 解析ISO格式的时间字符串
-                return new Date(data.utc_datetime);
+                // 解析API响应，获取时间戳（秒）并转换为毫秒
+                const timestamp = parseInt(data.sjc) * 1000;
+                return new Date(timestamp);
             })
             .catch(error => {
                 console.warn('获取服务器时间失败，使用本地时间', error);

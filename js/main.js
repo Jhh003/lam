@@ -2,6 +2,10 @@
 
 // 导入罪人数据
 import { sinnerData } from '../data/characters.js';
+// 导入工具函数
+import { secureRandInt } from '../data/utils/helpers.js';
+// 导入配置
+import { Config } from '../data/config.js';
 
 // 获取DOM元素
 const sinnerScroll = document.getElementById('sinner-scroll');
@@ -32,7 +36,7 @@ let sinnerOffset = 0;
 let personaOffset = 0;
 let isSinnerScrolling = false;
 let isPersonaScrolling = false;
-const itemHeight = 50; // 每个项目高度
+const itemHeight = Config.itemHeight; // 每个项目高度
 
 // 新增变量：筛选后的罪人数据
 let filteredSinnerData = [...sinnerData]; // 默认包含所有罪人
@@ -45,23 +49,7 @@ let originalFilteredSinnerData = [];
 let originalFilteredPersonalityData = {};
 let hasUnsavedChanges = false;
 
-// 安全随机整数生成函数 [0, max)
-function secureRandInt(max) {
-    if (max <= 0) return 0;
-    try {
-        if (window.crypto && crypto.randomInt) {
-            return crypto.randomInt(0, max);
-        }
-        if (window.crypto && crypto.getRandomValues) {
-            const arr = new Uint32Array(1);
-            crypto.getRandomValues(arr);
-            return arr[0] % max;
-        }
-    } catch (e) {
-        console.warn('安全随机数失败，回退到 Math.random', e);
-    }
-    return Math.floor(Math.random() * max);
-}
+
 
 // 页面导航功能
 mainPageBtn.addEventListener('click', () => {
@@ -339,24 +327,24 @@ function startSinnerScroll() {
     clearHighlight(sinnerScroll);
     
     // 快速滚动
-    const speed = 150;
-    sinnerScroll.style.transition = 'transform 0.05s linear';
+    const speed = Config.scrollSpeed;
+    sinnerScroll.style.transition = `transform ${Config.transitionDuration} ${Config.transitionType}`;
     
     sinnerScrollInterval = setInterval(() => {
         sinnerOffset += speed;
         sinnerScroll.style.transform = `translateY(-${sinnerOffset}px)`;
         
         // 循环重置逻辑
-        const totalHeight = sinnerItems.length * itemHeight * 5;
+        const totalHeight = sinnerItems.length * itemHeight * Config.totalHeightMultiplier;
         if (sinnerOffset > totalHeight) {
             sinnerOffset = sinnerOffset % totalHeight;
             sinnerScroll.style.transition = 'none';
             sinnerScroll.style.transform = `translateY(-${sinnerOffset}px)`;
             setTimeout(() => {
-                sinnerScroll.style.transition = 'transform 0.05s linear';
-            }, 10);
+                sinnerScroll.style.transition = `transform ${Config.transitionDuration} ${Config.transitionType}`;
+            }, Config.scrollInterval);
         }
-    }, 10);
+    }, Config.scrollInterval);
 }
 
 // 重置二级转盘状态
@@ -526,7 +514,7 @@ function startPersonaScroll() {
     
     const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
     if (personasToShow.length < 1) {
-        alert('请至少选择一个人格！');
+        alert(Config.errorMessages.noPersonasSelected);
         return;
     }
     
@@ -546,8 +534,8 @@ function startPersonaScroll() {
     clearHighlight(personaScroll);
     
     // 快速滚动
-    const speed = 150;
-    personaScroll.style.transition = 'transform 0.05s linear';
+    const speed = Config.scrollSpeed;
+    personaScroll.style.transition = `transform ${Config.transitionDuration} ${Config.transitionType}`;
     
     personaScrollInterval = setInterval(() => {
         personaOffset += speed;

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天蛋筒什么</title>
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/season.css">
+    <script src="js/common.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>边狱公司 - 今天蛋筒什么？</h1>
+            <p class="description">版本：1.1</p>
+            <div id="countdown" style="margin-top: 20px; font-size: 1.5rem; color: #d4af37;"></div>
+        </header>
+
+        <!-- 导航按钮 -->
+        <div class="navigation-buttons">
+            <button id="main-page-btn" class="nav-btn active">主选择器</button>
+            <button id="settings-page-btn" class="nav-btn">筛选设置</button>
+        </div>
+
+        <!-- 主选择器页面 -->
+        <div id="main-selector-page">
+            <div class="selector-container">
+                <!-- 一级选择器：罪人选择 -->
+                <div class="selector-section">
+                    <h2 class="selector-title">
+                        <i class="fas fa-user-tag"></i> 一级选择 - 12名罪人
+                    </h2>
+                    <div class="scroll-container" id="sinner-scroll-container">
+                        <div id="sinner-scroll" class="scroll-list"></div>
+                    </div>
+                    <div class="selector-controls">
+                        <button id="sinner-start-btn" class="control-btn">
+                            <i class="fas fa-play"></i> 开始滚动
+                        </button>
+                        <button id="sinner-stop-btn" class="control-btn" disabled>
+                            <i class="fas fa-stop"></i> 停止选择
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 二级选择器：人格选择 -->
+                <div class="selector-section" style="margin-top: 40px;">
+                    <h2 class="selector-title">
+                        <i class="fas fa-mask"></i> 二级选择 - 罪人人格
+                    </h2>
+                    <div class="scroll-container" id="persona-scroll-container">
+                        <div id="persona-scroll" class="scroll-list"></div>
+                    </div>
+                    <div class="selector-controls">
+                        <button id="persona-start-btn" class="control-btn" disabled>
+                            <i class="fas fa-play"></i> 开始滚动
+                        </button>
+                        <button id="persona-stop-btn" class="control-btn" disabled>
+                            <i class="fas fa-stop"></i> 停止选择
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果显示区域 -->
+            <div class="result-section">
+                <h3 class="result-title">
+                    <i class="fas fa-trophy"></i> 选择结果
+                </h3>
+                <div class="result-content">
+                    <p><span class="highlight">当前选中罪人：</span><span id="selected-sinner">未选择</span></p>
+                    <p><span class="highlight">当前选中人格：</span><span id="selected-persona">未选择</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 筛选设置页面 -->
+        <div id="settings-page" class="settings-page">
+            <h2 class="settings-title">
+                <i class="fas fa-cog"></i> 筛选设置
+            </h2>
+            
+            <!-- 罪人筛选设置 -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">
+                    <i class="fas fa-user-friends"></i> 罪人筛选设置
+                </h3>
+                <div class="filter-controls">
+                    <button id="select-all-btn" class="control-btn" style="margin: 10px 5px; padding: 8px 15px; font-size: 0.9rem;">
+                        全选
+                    </button>
+                    <button id="deselect-all-btn" class="control-btn" style="margin: 10px 5px; padding: 8px 15px; font-size: 0.9rem;">
+                        全不选
+                    </button>
+                    <button id="invert-selection-btn" class="control-btn" style="margin: 10px 5px; padding: 8px 15px; font-size: 0.9rem;">
+                        反选
+                    </button>
+                </div>
+                <div id="sinner-filter" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 20px;"></div>
+            </div>
+            
+            <!-- 人格筛选设置 -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">
+                    <i class="fas fa-id-card"></i> 人格整体筛选设置
+                </h3>
+                <div id="personality-settings-container">
+                    <!-- 人格设置将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用说明 -->
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ul>
+                <li>数据、图片均来自Limbus Company 中文维基</li>
+                <li>在筛选设置中选择要参与随机的罪人</li>
+                <li>点击"开始滚动"按钮启动滚动选择</li>
+                <li>点击"停止选择"按钮确定当前选项</li>
+                <li>一级选择完成后，二级选择器将自动解锁</li>
+                <li>每次选择均为随机，确保公平性</li>
+                <li>支持手机、平板、电脑等多种设备访问</li>
+                <li>欢迎反馈、提建议、报告Bug</li>
+                <li>084 QQ交流群：313198040</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

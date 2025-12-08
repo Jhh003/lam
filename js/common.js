@@ -76,7 +76,44 @@
         // 更新页面上的倒计时显示
         const countdownElement = document.getElementById('countdown');
         if (countdownElement) {
-            countdownElement.innerHTML = `距离第七赛季更新还有<br>${formattedDays}天 ${formattedHours}小时 ${formattedMinutes}分钟 ${formattedSeconds}秒`;
+            // 创建带有动画效果的倒计时文本
+            const countdownText = `距离第七赛季更新还有<br>${formattedDays}天 ${formattedHours}小时 ${formattedMinutes}分钟 ${formattedSeconds}秒`;
+            
+            // 将文本拆分为字符，并用span包裹以应用动画效果
+            const animatedText = createAnimatedText(countdownText);
+            
+            countdownElement.innerHTML = animatedText;
         }
+    }
+    
+    // 创建带有闪烁动画效果的文本
+    function createAnimatedText(text) {
+        // 处理换行符，将文本分成多行
+        const lines = text.split('<br>');
+        let result = '';
+        
+        lines.forEach((line, lineIndex) => {
+            if (lineIndex > 0) {
+                result += '<br>';
+            }
+            
+            // 为整行添加season-text类
+            result += '<div class="season-text">';
+            
+            // 为每个字符添加glowIn类的span
+            for (let i = 0; i < line.length; i++) {
+                if (line[i] === ' ') {
+                    // 空格保持原样
+                    result += ' ';
+                } else {
+                    // 其他字符用span包裹并应用动画
+                    result += `<span class="glowIn"><span>${line[i]}</span></span>`;
+                }
+            }
+            
+            result += '</div>';
+        });
+        
+        return result;
     }
 })();

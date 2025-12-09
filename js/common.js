@@ -210,7 +210,8 @@
                     playerNameInput.value = '';
                     playerNoteInput.value = '';
                 } else {
-                    alert('上传失败：' + errorMessage);
+                    console.error('上传失败，服务器返回错误：', errorMessage);
+                    alert(`上传失败: ${errorMessage}\n\n详细信息请查看浏览器控制台`);
                 }
             } catch (error) {
                 console.error('上传失败:', error);
@@ -228,8 +229,20 @@
                 viewRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 加载中...';
                 
                 // 使用新路径和新参数（limit和offset）
-                const response = await fetch(`${rankingApiUrl}${rankingQueryPath}?limit=10&offset=0`);
+                const fullUrl = `${rankingApiUrl}${rankingQueryPath}?limit=10&offset=0`;
+                console.log('正在加载排行榜:', fullUrl);
+                
+                const response = await fetch(fullUrl);
+                
+                console.log('排行榜响应状态:', response.status);
+                
+                // 检查响应是否成功
+                if (!response.ok) {
+                    throw new Error(`网络请求失败: ${response.status} ${response.statusText}`);
+                }
+                
                 const result = await response.json();
+                console.log('排行榜响应数据:', result);
                 
                 // 兼容新旧两种响应格式
                 const success = result.code === 200 || result.success;
@@ -266,11 +279,12 @@
                     // 这里使用一个简单的alert，实际项目中可以使用更美观的弹窗
                     alert(rankingHtml.replace(/<[^>]+>/g, ''));
                 } else {
-                    alert('排行榜为空！');
+                    const errorMessage = result.message || result.error || '排行榜为空！';
+                    alert(success ? '排行榜为空！' : errorMessage);
                 }
             } catch (error) {
                 console.error('加载排行榜失败:', error);
-                alert('加载排行榜失败，请检查网络连接或稍后重试！');
+                alert(`加载排行榜失败: ${error.message}\n\n详细信息请查看浏览器控制台`);
             } finally {
                 viewRankingBtn.disabled = false;
                 viewRankingBtn.innerHTML = '<i class="fas fa-trophy"></i> 查看排行榜';

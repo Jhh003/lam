@@ -20,11 +20,24 @@ lam/
 ├── css/               # 样式文件
 │   ├── reset.css      # 重置样式
 │   ├── common.css     # 通用样式
-│   └── season.css     # 季节性样式
-├── js/                # JavaScript文件
+│   ├── season.css     # 季节性样式
+│   └── module/        # 模块化样式文件
+├── data/              # 数据和工具模块
+│   ├── characters.js  # 罪人数据
+│   ├── config.js      # 配置常量
+│   └── utils/
+│       └── helpers.js # 工具函数
+├── js/                # JavaScript模块
 │   ├── common.js      # 通用功能
-│   └── main.js        # 主应用逻辑
+│   ├── main.js        # 主应用逻辑
+│   ├── filters.js     # 筛选功能模块
+│   ├── scrolls.js     # 滚动列表功能模块
+│   ├── settings.js    # 设置功能模块
+│   └── ui.js          # UI功能模块
 ├── index.html         # 主页面
+├── test.html          # 测试页面
+├── test-modules.js    # 模块测试文件
+├── package.json       # 项目配置文件
 └── README.md          # 项目说明
 ```
 
@@ -61,6 +74,14 @@ lam/
 - Font Awesome 图标库
 
 ## 更新日志
+
+### 版本 1.2
+- 将应用功能拆分为多个模块化文件：filters.js、scrolls.js、settings.js、ui.js
+- 优化了代码结构，提高了可维护性和可扩展性
+- 增强了筛选功能，支持更灵活的筛选设置
+- 改进了滚动列表的实现，提高了性能和用户体验
+- 添加了更多的测试文件，便于功能测试
+- 更新了项目配置，添加了package.json文件
 
 ### 版本 1.1.1
 - 分离罪人数据到独立的characters.js文件

@@ -1,0 +1,17 @@
+{
+  "name": "lam-scroll-app",
+  "version": "1.0.0",
+  "description": "边狱公司 - 今天蛋筒什么？滚动应用",
+  "main": "js/main.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test-modules.js"
+  },
+  "keywords": [
+    "lam",
+    "scroll",
+    "app"
+  ],
+  "author": "",
+  "license": "MIT"
+}

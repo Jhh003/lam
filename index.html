@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/season.css">
+    <link rel="stylesheet" href="css/module/dynamic-styles.css">
     <script src="js/common.js"></script>
 </head>
 <body>
@@ -108,6 +109,16 @@
                 <div id="personality-settings-container">
                     <!-- 人格设置将通过JavaScript动态生成 -->
                 </div>
+            </div>
+            
+            <!-- 应用筛选按钮 -->
+            <div class="settings-actions" style="margin-top: 30px; text-align: center;">
+                <button id="apply-filters-btn" class="control-btn primary-btn" style="margin: 10px 5px; padding: 10px 30px; font-size: 1rem;">
+                    <i class="fas fa-check-circle"></i> 应用筛选设置
+                </button>
+                <button id="reset-filters-btn" class="control-btn" style="margin: 10px 5px; padding: 10px 30px; font-size: 1rem;">
+                    <i class="fas fa-redo-alt"></i> 重置筛选设置
+                </button>
             </div>
         </div>
 

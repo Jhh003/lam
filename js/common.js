@@ -169,11 +169,23 @@
                 // 从localStorage获取现有记录
                 const records = JSON.parse(localStorage.getItem('personalRanking') || '[]');
                 
+                // 获取当前选中的角色信息
+                const selectedSinner = window.currentSelectedSinner;
+                const selectedPersona = window.currentSelectedPersona;
+                
                 // 创建新记录
                 const newRecord = {
                     time: seconds,
                     comment: playerNote,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    sinner: selectedSinner ? {
+                        name: selectedSinner.name,
+                        avatar: selectedSinner.avatar
+                    } : null,
+                    persona: selectedPersona ? {
+                        name: selectedPersona.name,
+                        avatar: selectedPersona.avatar
+                    } : null
                 };
                 
                 // 添加新记录

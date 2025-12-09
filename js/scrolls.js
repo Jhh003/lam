@@ -337,6 +337,7 @@ function resetPersonaScrollState() {
     
     // 初始化当前选中的罪人人格
     currentSelectedPersona = null;
+    window.currentSelectedPersona = null; // 更新window对象
     selectedPersonaEl.textContent = '未选择';
 }
 
@@ -351,6 +352,7 @@ function stopSinnerScroll() {
         
         // 直接选中唯一罪人
         currentSelectedSinner = window.filteredSinnerData[0];
+        window.currentSelectedSinner = currentSelectedSinner; // 更新window对象
         selectedSinnerEl.textContent = currentSelectedSinner.name;
         selectedPersonaEl.textContent = "未选择";
         
@@ -406,6 +408,7 @@ function stopSinnerScroll() {
     
     const randomIndex = secureRandInt(window.filteredSinnerData.length);
     currentSelectedSinner = window.filteredSinnerData[randomIndex];
+    window.currentSelectedSinner = currentSelectedSinner; // 更新window对象
     selectedSinnerEl.textContent = currentSelectedSinner.name;
     selectedPersonaEl.textContent = "未选择";
     
@@ -580,6 +583,8 @@ function stopPersonaScroll() {
     // 随机选择一个人格
     const randomIndex = secureRandInt(personasToShow.length);
     const selectedPersona = personasToShow[randomIndex];
+    currentSelectedPersona = selectedPersona;
+    window.currentSelectedPersona = selectedPersona; // 更新window对象
     selectedPersonaEl.textContent = typeof selectedPersona === 'object' ? selectedPersona.name : selectedPersona;
     
     // 计算显示行数和中心行索引

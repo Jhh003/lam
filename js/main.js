@@ -79,6 +79,9 @@ let hasUnsavedChanges = false;
 window.filteredSinnerData = filteredSinnerData;
 window.filteredPersonalityData = filteredPersonalityData;
 window.hasUnsavedChanges = hasUnsavedChanges;
+// 挂载当前选中的角色信息
+window.currentSelectedSinner = currentSelectedSinner;
+window.currentSelectedPersona = currentSelectedPersona;
 
 
 

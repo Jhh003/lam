@@ -185,14 +185,35 @@ h1 {
 }
 
 /* 新增筛选样式 */
-.filter-controls {
+#pagination-container {
     display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
     margin: 15px 0;
     overflow-x: auto;
-    padding: 5px 0;
+    padding: 10px;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #d4af37 rgba(255, 255, 255, 0.1);
+}
+
+#pagination-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+#pagination-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#pagination-container::-webkit-scrollbar-thumb {
+    background: #d4af37;
+    border-radius: 4px;
+}
+
+#pagination-container::-webkit-scrollbar-thumb:hover {
+    background: #f0d466;
 }
 
 .sinner-checkbox-label {

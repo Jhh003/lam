@@ -236,8 +236,7 @@ function createPersonalitySettings() {
                         targetPage.classList.add('active');
                         e.target.classList.add('active');
                         
-                        // 页面切换时自动滚动到顶部
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        // 移除自动滚动到顶部功能
                     });
                 
                 paginationContainer.appendChild(pageBtn);

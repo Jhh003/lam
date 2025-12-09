@@ -188,12 +188,12 @@
             rankingList.innerHTML = records.map((record, index) => `
                 <div class="ranking-item">
                     <div class="ranking-number">${index + 1}</div>
-                    ${record.sinner ? `
+                    ${record.sinner || record.persona ? `
                         <div class="character-info">
-                            <img src="${record.sinner.avatar}" alt="${record.sinner.name}" class="character-avatar">
+                            <img src="${record.persona ? record.persona.avatar : record.sinner.avatar}" alt="${record.persona ? record.persona.name : record.sinner.name}" class="character-avatar">
                             <div class="character-details">
-                                <div class="character-name">${record.sinner.name}</div>
-                                ${record.persona ? `<div class="personality-name">${record.persona.name}</div>` : ''}
+                                ${record.persona ? `<div class="character-name">${record.persona.name}</div>` : `<div class="character-name">${record.sinner.name}</div>`}
+                                ${record.sinner && record.persona ? `<div class="personality-name">${record.sinner.name}</div>` : ''}
                             </div>
                         </div>
                     ` : ''}

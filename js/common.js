@@ -160,7 +160,8 @@
                 return;
             }
             
-            const playerNote = playerNoteInput.value.trim();
+            // 安全获取玩家备注（检查元素是否存在）
+            const playerNote = playerNoteInput ? playerNoteInput.value.trim() : '';
             
             try {
                 uploadRankingBtn.disabled = true;
@@ -196,9 +197,13 @@
                 
                 alert('保存成功！记录已添加到本地排行榜');
                 
-                // 重置表单
-                playerNameInput.value = '';
-                playerNoteInput.value = '';
+                // 重置表单（安全检查元素是否存在）
+                if (playerNameInput) {
+                    playerNameInput.value = '';
+                }
+                if (playerNoteInput) {
+                    playerNoteInput.value = '';
+                }
             } catch (error) {
                 console.error('保存失败:', error);
                 alert(`保存失败: ${error.message}\n\n详细信息请查看浏览器控制台`);

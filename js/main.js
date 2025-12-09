@@ -91,12 +91,14 @@ mainPageBtn.addEventListener('click', () => {
             // 保存筛选设置（applyFilters内部会调用validateFilterSettings）
             Filters.applyFilters();
         } else {
-            // 不保存直接返回主页面
-            mainSelectorPage.style.display = 'block';
-            settingsPage.style.display = 'none';
-            mainPageBtn.classList.add('active');
-            settingsPageBtn.classList.remove('active');
-            Filters.refreshScrollsOnReturn();
+            // 不保存直接返回主页面，但仍需要验证人格选择
+            if (Filters.validateFilterSettings()) {
+                mainSelectorPage.style.display = 'block';
+                settingsPage.style.display = 'none';
+                mainPageBtn.classList.add('active');
+                settingsPageBtn.classList.remove('active');
+                Filters.refreshScrollsOnReturn();
+            }
         }
     } else {
         // 没有未保存的更改，直接返回主页面

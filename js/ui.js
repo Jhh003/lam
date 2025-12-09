@@ -4,30 +4,7 @@
 const UI = {
     // 初始化页面导航
     initPageNavigation(mainPageBtn, settingsPageBtn, mainSelectorPage, settingsPage) {
-        // 主页面按钮点击事件
-        mainPageBtn.addEventListener('click', () => {
-            import('./filters.js').then(({ default: Filters }) => {
-                // 检查是否有未保存的更改
-                if (window.hasUnsavedChanges) {
-                    const choice = confirm('您有未保存的更改，是否保存后再离开？\n\n点击"确定"保存并返回，点击"取消"不保存直接返回。');
-                    if (choice) {
-                        // 保存筛选设置
-                        Filters.applyFilters();
-                    } else {
-                        // 不保存直接返回，恢复原始筛选状态
-                        window.filteredSinnerData = [...window.originalFilteredSinnerData];
-                        window.filteredPersonalityData = JSON.parse(JSON.stringify(window.originalFilteredPersonalityData));
-                        window.hasUnsavedChanges = false;
-                    }
-                }
-                
-                // 无论是否保存，都返回主页面
-                mainSelectorPage.style.display = 'block';
-                settingsPage.style.display = 'none';
-                mainPageBtn.classList.add('active');
-                settingsPageBtn.classList.remove('active');
-            });
-        });
+        // 主页面按钮的点击事件已在main.js中处理，此处不再重复添加
         
         // 设置页面按钮点击事件
         settingsPageBtn.addEventListener('click', () => {

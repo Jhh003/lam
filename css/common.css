@@ -456,15 +456,10 @@ h1 {
         margin: 15px 0;
     }
     
-    .scroll-item {
-        font-size: 0.9rem;
-        padding: 10px;
-    }
-    
-    .scroll-item-content {
-        flex-direction: column;
-        gap: 5px;
-    }
+    .scroll-item {        font-size: 0.9rem;        padding: 8px 10px;        max-width: 100%;        box-sizing: border-box;        min-height: 50px;    }    
+    .scroll-item-content {        flex-direction: row;        gap: 8px;        max-width: 100%;        overflow: hidden;    }    
+    .scroll-item-content img.avatar-placeholder,    .scroll-item-content div.avatar-placeholder {        max-width: 25px;        max-height: 25px;        width: 25px;        height: 25px;        font-size: 12px;    }    
+    .scroll-item-content span {        white-space: nowrap;        overflow: hidden;        text-overflow: ellipsis;        max-width: calc(100% - 35px);    }
     
     .filter-controls {
         gap: 5px;

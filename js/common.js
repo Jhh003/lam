@@ -153,17 +153,10 @@
         const rankingUploadPath = '/ranking'; // 新路径
         const rankingQueryPath = '/ranking'; // 新路径
         
-        // 上传到排行榜
-        async function uploadToRanking() {
+        // 保存到本地排行榜
+        function saveToLocalRanking() {
             if (seconds === 0) {
-                alert('请先完成一次游戏计时再上传！');
-                return;
-            }
-            
-            const playerName = playerNameInput.value.trim();
-            if (!playerName) {
-                alert('请输入昵称！');
-                playerNameInput.focus();
+                alert('请先完成一次游戏计时再保存！');
                 return;
             }
             
@@ -171,124 +164,42 @@
             
             try {
                 uploadRankingBtn.disabled = true;
-                uploadRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+                uploadRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
                 
-                const fullUrl = rankingApiUrl + rankingUploadPath;
-                console.log('正在上传到:', fullUrl);
+                // 从localStorage获取现有记录
+                const records = JSON.parse(localStorage.getItem('personalRanking') || '[]');
                 
-                const response = await fetch(fullUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userId: playerName, // 使用userId参数名（兼容nickname）
-                        nickname: playerName,
-                        time: seconds,
-                        comment: playerNote
-                    })
-                });
+                // 创建新记录
+                const newRecord = {
+                    time: seconds,
+                    comment: playerNote,
+                    timestamp: new Date().toISOString()
+                };
                 
-                console.log('响应状态:', response.status);
+                // 添加新记录
+                records.push(newRecord);
                 
-                // 检查响应是否成功
-                if (!response.ok) {
-                    throw new Error(`网络请求失败: ${response.status} ${response.statusText}`);
-                }
+                // 保存回localStorage
+                localStorage.setItem('personalRanking', JSON.stringify(records));
                 
-                const result = await response.json();
-                console.log('响应数据:', result);
+                alert('保存成功！记录已添加到本地排行榜');
                 
-                // 兼容新旧两种响应格式
-                const success = result.code === 200 || result.success;
-                const rank = result.data?.rank;
-                const errorMessage = result.message || result.error || '未知错误';
-                
-                if (success) {
-                    alert('上传成功！您的排名：第' + rank + '名');
-                    // 可选：重置表单
-                    playerNameInput.value = '';
-                    playerNoteInput.value = '';
-                } else {
-                    console.error('上传失败，服务器返回错误：', errorMessage);
-                    alert(`上传失败: ${errorMessage}\n\n详细信息请查看浏览器控制台`);
-                }
+                // 重置表单
+                playerNameInput.value = '';
+                playerNoteInput.value = '';
             } catch (error) {
-                console.error('上传失败:', error);
-                alert(`上传失败: ${error.message}\n\n详细信息请查看浏览器控制台`);
+                console.error('保存失败:', error);
+                alert(`保存失败: ${error.message}\n\n详细信息请查看浏览器控制台`);
             } finally {
                 uploadRankingBtn.disabled = false;
-                uploadRankingBtn.innerHTML = '<i class="fas fa-upload"></i> 上传到排行榜';
+                uploadRankingBtn.innerHTML = '<i class="fas fa-save"></i> 保存到排行榜';
             }
         }
         
         // 查看排行榜
-        async function viewRanking() {
-            try {
-                viewRankingBtn.disabled = true;
-                viewRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 加载中...';
-                
-                // 使用新路径和新参数（limit和offset）
-                const fullUrl = `${rankingApiUrl}${rankingQueryPath}?limit=10&offset=0`;
-                console.log('正在加载排行榜:', fullUrl);
-                
-                const response = await fetch(fullUrl);
-                
-                console.log('排行榜响应状态:', response.status);
-                
-                // 检查响应是否成功
-                if (!response.ok) {
-                    throw new Error(`网络请求失败: ${response.status} ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                console.log('排行榜响应数据:', result);
-                
-                // 兼容新旧两种响应格式
-                const success = result.code === 200 || result.success;
-                let records = [];
-                
-                // 从新格式中提取数据
-                if (Array.isArray(result.data)) {
-                    records = result.data;
-                } 
-                // 从旧格式中提取数据
-                else if (result.data?.records && Array.isArray(result.data.records)) {
-                    records = result.data.records;
-                }
-                
-                if (success && records.length > 0) {
-                    // 创建排行榜显示内容
-                    let rankingHtml = '<h4>单通时间排行榜</h4><ol style="list-style: decimal; padding-left: 20px; max-height: 300px; overflow-y: auto;">';
-                    
-                    records.forEach((entry) => {
-                        const timeStr = formatTime(entry.time);
-                        // 兼容userId和nickname
-                        const playerName = entry.nickname || entry.userId;
-                        rankingHtml += `<li style="margin-bottom: 10px; padding: 5px; border-bottom: 1px solid #eee;">
-                            <strong>${entry.rank}. ${playerName}</strong><br>
-                            <span style="color: #007bff;">时间：${timeStr}</span><br>
-                            <span style="font-size: 0.8rem; color: #666;">${entry.comment || '无备注'}</span><br>
-                            <span style="font-size: 0.8rem; color: #999;">上传时间：${new Date(entry.timestamp).toLocaleString()}</span>
-                        </li>`;
-                    });
-                    
-                    rankingHtml += '</ol>';
-                    
-                    // 使用alert或自定义弹窗显示排行榜
-                    // 这里使用一个简单的alert，实际项目中可以使用更美观的弹窗
-                    alert(rankingHtml.replace(/<[^>]+>/g, ''));
-                } else {
-                    const errorMessage = result.message || result.error || '排行榜为空！';
-                    alert(success ? '排行榜为空！' : errorMessage);
-                }
-            } catch (error) {
-                console.error('加载排行榜失败:', error);
-                alert(`加载排行榜失败: ${error.message}\n\n详细信息请查看浏览器控制台`);
-            } finally {
-                viewRankingBtn.disabled = false;
-                viewRankingBtn.innerHTML = '<i class="fas fa-trophy"></i> 查看排行榜';
-            }
+        function viewRanking() {
+            // 在新窗口中打开排行榜页面
+            window.open('ranking.html', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
         }
         
         // 格式化时间（秒 -> HH:MM:SS）
@@ -378,7 +289,7 @@
         if (rankingForm && uploadRankingBtn) {
             rankingForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                uploadToRanking();
+                saveToLocalRanking();
             });
         }
         

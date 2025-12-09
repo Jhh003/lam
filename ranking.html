@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人排行榜 - Limbus Company</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        .ranking-list {
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .ranking-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .ranking-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            width: 40px;
+        }
+        .ranking-info {
+            flex: 1;
+            margin-left: 20px;
+        }
+        .ranking-time {
+            font-size: 20px;
+            font-weight: bold;
+            color: #28a745;
+            margin-right: 20px;
+        }
+        .ranking-date {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .ranking-comment {
+            font-size: 14px;
+            color: #495057;
+            margin-top: 5px;
+        }
+        .no-records {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px 0;
+            font-size: 18px;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #5568d3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .ranking-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .ranking-number {
+                margin-bottom: 10px;
+            }
+            .ranking-time {
+                margin-left: 60px;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-trophy"></i> 个人单通时间排行榜</h1>
+        
+        <div class="ranking-list" id="rankingList">
+            <!-- 排行榜记录将通过JavaScript动态添加 -->
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-primary" onclick="closeWindow()">关闭</button>
+            <button class="btn btn-danger" onclick="clearAllRecords()">清空记录</button>
+        </div>
+    </div>
+
+    <script>
+        // 格式化时间（秒 -> HH:MM:SS）
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        // 加载排行榜数据
+        function loadRanking() {
+            const records = JSON.parse(localStorage.getItem('personalRanking') || '[]');
+            
+            // 按时间升序排序（最快的时间在前）
+            records.sort((a, b) => a.time - b.time);
+            
+            const rankingList = document.getElementById('rankingList');
+            
+            if (records.length === 0) {
+                rankingList.innerHTML = '<div class="no-records">暂无记录</div>';
+                return;
+            }
+            
+            // 添加排名并显示
+            rankingList.innerHTML = records.map((record, index) => `
+                <div class="ranking-item">
+                    <div class="ranking-number">${index + 1}</div>
+                    <div class="ranking-info">
+                        <div class="ranking-date">${new Date(record.timestamp).toLocaleString()}</div>
+                        <div class="ranking-comment">${record.comment || '无备注'}</div>
+                    </div>
+                    <div class="ranking-time">${formatTime(record.time)}</div>
+                </div>
+            `).join('');
+        }
+        
+        // 清空所有记录
+        function clearAllRecords() {
+            if (confirm('确定要清空所有排行榜记录吗？此操作不可恢复。')) {
+                localStorage.removeItem('personalRanking');
+                loadRanking();
+            }
+        }
+        
+        // 关闭窗口
+        function closeWindow() {
+            window.close();
+        }
+        
+        // 页面加载时加载排行榜
+        document.addEventListener('DOMContentLoaded', loadRanking);
+    </script>
+</body>
+</html>

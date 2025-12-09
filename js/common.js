@@ -129,11 +129,10 @@
         const resetBtn = document.getElementById('timer-reset-btn');
         
         // 排行榜功能元素
-        const rankingForm = document.getElementById('ranking-form');
-        const playerNameInput = document.getElementById('player-name');
-        const playerNoteInput = document.getElementById('player-note');
-        const uploadRankingBtn = document.getElementById('upload-ranking-btn');
-        const viewRankingBtn = document.getElementById('view-ranking-btn');
+const rankingForm = document.getElementById('ranking-form');
+const playerNoteInput = document.getElementById('player-note');
+const uploadRankingBtn = document.getElementById('upload-ranking-btn');
+const viewRankingBtn = document.getElementById('view-ranking-btn');
         
         // 确保所有元素都存在
         if (!timerModal || !timerToggleBtn || !timerCloseBtn || !timerDisplay || !startBtn || !pauseBtn || !resetBtn) {
@@ -197,10 +196,7 @@
                 
                 alert('保存成功！记录已添加到本地排行榜');
                 
-                // 重置表单（安全检查元素是否存在）
-                if (playerNameInput) {
-                    playerNameInput.value = '';
-                }
+                // 重置备注输入框（安全检查元素是否存在）
                 if (playerNoteInput) {
                     playerNoteInput.value = '';
                 }

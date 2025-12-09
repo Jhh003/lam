@@ -1,0 +1,20 @@
+{
+  "name": "aliyun-fc-ranking-function",
+  "version": "1.0.0",
+  "description": "阿里云FC函数，用于处理单通时间排行榜的上传和查询",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aliyun",
+    "fc",
+    "redis",
+    "ranking"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ioredis": "^5.3.2"
+  }
+}

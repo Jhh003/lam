@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/season.css">
     <link rel="stylesheet" href="css/module/dynamic-styles.css">
+    <script src="config.js"></script>
     <script src="js/common.js"></script>
 </head>
 <body>
@@ -172,6 +173,29 @@
                     <button id="timer-reset-btn" class="control-btn">
                         <i class="fas fa-redo"></i> 重置
                     </button>
+                </div>
+                
+                <!-- 排行榜上传功能 -->
+                <div class="timer-ranking">
+                    <h4 class="timer-ranking-title">单通时间排行榜</h4>
+                    <form id="ranking-form" class="ranking-form">
+                        <div class="form-group">
+                            <label for="player-name">昵称：</label>
+                            <input type="text" id="player-name" name="playerName" placeholder="请输入昵称" required maxlength="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="player-note">备注：</label>
+                            <input type="text" id="player-note" name="playerNote" placeholder="可选，如：使用角色、难度等" maxlength="20">
+                        </div>
+                        <div class="ranking-actions">
+                            <button type="submit" id="upload-ranking-btn" class="control-btn primary-btn">
+                                <i class="fas fa-upload"></i> 上传到排行榜
+                            </button>
+                            <button type="button" id="view-ranking-btn" class="control-btn">
+                                <i class="fas fa-trophy"></i> 查看排行榜
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

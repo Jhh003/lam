@@ -128,6 +128,13 @@
         const pauseBtn = document.getElementById('timer-pause-btn');
         const resetBtn = document.getElementById('timer-reset-btn');
         
+        // 排行榜功能元素
+        const rankingForm = document.getElementById('ranking-form');
+        const playerNameInput = document.getElementById('player-name');
+        const playerNoteInput = document.getElementById('player-note');
+        const uploadRankingBtn = document.getElementById('upload-ranking-btn');
+        const viewRankingBtn = document.getElementById('view-ranking-btn');
+        
         // 确保所有元素都存在
         if (!timerModal || !timerToggleBtn || !timerCloseBtn || !timerDisplay || !startBtn || !pauseBtn || !resetBtn) {
             console.warn('计时器元素未找到');
@@ -138,6 +145,135 @@
         let timerInterval = null;
         let seconds = 0;
         let isRunning = false;
+        
+        // 从配置文件获取排行榜API地址
+        // 排行榜API配置
+        const rankingApiUrl = window.appConfig?.ranking?.apiUrl || 'https://your-aliyun-fc-endpoint.rg-cn-beijing.fc.aliyuncs.com/2016-08-15/proxy/limbus-ranking/';
+        // 使用新的API路径/ranking（兼容旧路径/upload和/query）
+        const rankingUploadPath = '/ranking'; // 新路径
+        const rankingQueryPath = '/ranking'; // 新路径
+        
+        // 上传到排行榜
+        async function uploadToRanking() {
+            if (seconds === 0) {
+                alert('请先完成一次游戏计时再上传！');
+                return;
+            }
+            
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert('请输入昵称！');
+                playerNameInput.focus();
+                return;
+            }
+            
+            const playerNote = playerNoteInput.value.trim();
+            
+            try {
+                uploadRankingBtn.disabled = true;
+                uploadRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+                
+                const response = await fetch(rankingApiUrl + rankingUploadPath, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: playerName, // 使用userId参数名（兼容nickname）
+                        nickname: playerName,
+                        time: seconds,
+                        comment: playerNote
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // 兼容新旧两种响应格式
+                const success = result.code === 200 || result.success;
+                const rank = result.data?.rank;
+                const errorMessage = result.message || result.error || '未知错误';
+                
+                if (success) {
+                    alert('上传成功！您的排名：第' + rank + '名');
+                    // 可选：重置表单
+                    playerNameInput.value = '';
+                    playerNoteInput.value = '';
+                } else {
+                    alert('上传失败：' + errorMessage);
+                }
+            } catch (error) {
+                console.error('上传失败:', error);
+                alert('上传失败，请检查网络连接或稍后重试！');
+            } finally {
+                uploadRankingBtn.disabled = false;
+                uploadRankingBtn.innerHTML = '<i class="fas fa-upload"></i> 上传到排行榜';
+            }
+        }
+        
+        // 查看排行榜
+        async function viewRanking() {
+            try {
+                viewRankingBtn.disabled = true;
+                viewRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 加载中...';
+                
+                // 使用新路径和新参数（limit和offset）
+                const response = await fetch(`${rankingApiUrl}${rankingQueryPath}?limit=10&offset=0`);
+                const result = await response.json();
+                
+                // 兼容新旧两种响应格式
+                const success = result.code === 200 || result.success;
+                let records = [];
+                
+                // 从新格式中提取数据
+                if (Array.isArray(result.data)) {
+                    records = result.data;
+                } 
+                // 从旧格式中提取数据
+                else if (result.data?.records && Array.isArray(result.data.records)) {
+                    records = result.data.records;
+                }
+                
+                if (success && records.length > 0) {
+                    // 创建排行榜显示内容
+                    let rankingHtml = '<h4>单通时间排行榜</h4><ol style="list-style: decimal; padding-left: 20px; max-height: 300px; overflow-y: auto;">';
+                    
+                    records.forEach((entry) => {
+                        const timeStr = formatTime(entry.time);
+                        // 兼容userId和nickname
+                        const playerName = entry.nickname || entry.userId;
+                        rankingHtml += `<li style="margin-bottom: 10px; padding: 5px; border-bottom: 1px solid #eee;">
+                            <strong>${entry.rank}. ${playerName}</strong><br>
+                            <span style="color: #007bff;">时间：${timeStr}</span><br>
+                            <span style="font-size: 0.8rem; color: #666;">${entry.comment || '无备注'}</span><br>
+                            <span style="font-size: 0.8rem; color: #999;">上传时间：${new Date(entry.timestamp).toLocaleString()}</span>
+                        </li>`;
+                    });
+                    
+                    rankingHtml += '</ol>';
+                    
+                    // 使用alert或自定义弹窗显示排行榜
+                    // 这里使用一个简单的alert，实际项目中可以使用更美观的弹窗
+                    alert(rankingHtml.replace(/<[^>]+>/g, ''));
+                } else {
+                    alert('排行榜为空！');
+                }
+            } catch (error) {
+                console.error('加载排行榜失败:', error);
+                alert('加载排行榜失败，请检查网络连接或稍后重试！');
+            } finally {
+                viewRankingBtn.disabled = false;
+                viewRankingBtn.innerHTML = '<i class="fas fa-trophy"></i> 查看排行榜';
+            }
+        }
+        
+        // 格式化时间（秒 -> HH:MM:SS）
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
         
         // 更新计时器显示
         function updateTimerDisplay() {
@@ -212,6 +348,18 @@
         startBtn.addEventListener('click', startTimer);
         pauseBtn.addEventListener('click', pauseTimer);
         resetBtn.addEventListener('click', resetTimer);
+        
+        // 排行榜事件监听器
+        if (rankingForm && uploadRankingBtn) {
+            rankingForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                uploadToRanking();
+            });
+        }
+        
+        if (viewRankingBtn) {
+            viewRankingBtn.addEventListener('click', viewRanking);
+        }
         
         // 初始化显示
         updateTimerDisplay();

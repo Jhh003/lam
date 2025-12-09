@@ -173,7 +173,10 @@
                 uploadRankingBtn.disabled = true;
                 uploadRankingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
                 
-                const response = await fetch(rankingApiUrl + rankingUploadPath, {
+                const fullUrl = rankingApiUrl + rankingUploadPath;
+                console.log('正在上传到:', fullUrl);
+                
+                const response = await fetch(fullUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -186,7 +189,15 @@
                     })
                 });
                 
+                console.log('响应状态:', response.status);
+                
+                // 检查响应是否成功
+                if (!response.ok) {
+                    throw new Error(`网络请求失败: ${response.status} ${response.statusText}`);
+                }
+                
                 const result = await response.json();
+                console.log('响应数据:', result);
                 
                 // 兼容新旧两种响应格式
                 const success = result.code === 200 || result.success;
@@ -203,7 +214,7 @@
                 }
             } catch (error) {
                 console.error('上传失败:', error);
-                alert('上传失败，请检查网络连接或稍后重试！');
+                alert(`上传失败: ${error.message}\n\n详细信息请查看浏览器控制台`);
             } finally {
                 uploadRankingBtn.disabled = false;
                 uploadRankingBtn.innerHTML = '<i class="fas fa-upload"></i> 上传到排行榜';

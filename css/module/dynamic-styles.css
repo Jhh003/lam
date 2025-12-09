@@ -117,9 +117,14 @@
 /* 分页容器 */
 .pagination {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
-    margin-top: 20px;
+    margin: 20px 0;
+    padding: 10px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #d4af37 #1a1a2e;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* 分页按钮 */

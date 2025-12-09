@@ -212,11 +212,14 @@ function createPersonaScrollList(items) {
         avatarElement.style.width = '30px';
         avatarElement.style.height = '30px';
         
-        // 获取人格信息
-        const personaInfo = items[i % items.length];
+        // 获取人格信息 - 支持字符串数组或对象数组
+        const currentItem = items[i % items.length];
+        const personaName = typeof currentItem === 'string' ? currentItem : currentItem.name;
+        const personaInfo = typeof currentItem === 'object' ? currentItem : null;
+        
         if (personaInfo && personaInfo.avatar) {
             avatarElement.src = personaInfo.avatar;
-            avatarElement.alt = personaInfo.name;
+            avatarElement.alt = personaName;
             avatarElement.onerror = function() {
                 this.src = '';
                 this.alt = '未知头像';
@@ -234,12 +237,12 @@ function createPersonaScrollList(items) {
             avatarElement.style.alignItems = 'center';
             avatarElement.style.justifyContent = 'center';
             avatarElement.textContent = '?';
-            avatarElement.alt = '未知头像';
+            avatarElement.alt = personaName;
         }
         content.appendChild(avatarElement);
         
         const textSpan = document.createElement('span');
-        textSpan.textContent = items[i % items.length].name;
+        textSpan.textContent = personaName;
         content.appendChild(textSpan);
         
         item.appendChild(content);

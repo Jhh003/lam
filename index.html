@@ -28,59 +28,58 @@
         <div id="main-selector-page">
             <div class="page-content">
                 <div class="selector-container">
-                <!-- 单通时间计时按钮 -->
-                <div style="text-align: right; margin-bottom: 20px;">
-                    <button id="timer-toggle-btn" class="control-btn primary-btn">
-                        <i class="fas fa-clock"></i> 单通时间计时
-                    </button>
-                </div>
-                <!-- 一级选择器：罪人选择 -->
-                <div class="selector-section">
-                    <h2 class="selector-title">
-                        <i class="fas fa-user-tag"></i> 一级选择 - 12名罪人
-                    </h2>
-                    <div class="scroll-container" id="sinner-scroll-container">
-                        <div id="sinner-scroll" class="scroll-list"></div>
-                    </div>
-                    <div class="selector-controls">
-                        <button id="sinner-start-btn" class="control-btn">
-                            <i class="fas fa-play"></i> 开始滚动
-                        </button>
-                        <button id="sinner-stop-btn" class="control-btn" disabled>
-                            <i class="fas fa-stop"></i> 停止选择
+                    <!-- 单通时间计时按钮 -->
+                    <div style="text-align: right; margin-bottom: 20px;">
+                        <button id="timer-toggle-btn" class="control-btn primary-btn">
+                            <i class="fas fa-clock"></i> 单通时间计时
                         </button>
                     </div>
-                </div>
+                    <!-- 一级选择器：罪人选择 -->
+                    <div class="selector-section">
+                        <h2 class="selector-title">
+                            <i class="fas fa-user-tag"></i> 一级选择 - 12名罪人
+                        </h2>
+                        <div class="scroll-container" id="sinner-scroll-container">
+                            <div id="sinner-scroll" class="scroll-list"></div>
+                        </div>
+                        <div class="selector-controls">
+                            <button id="sinner-start-btn" class="control-btn">
+                                <i class="fas fa-play"></i> 开始滚动
+                            </button>
+                            <button id="sinner-stop-btn" class="control-btn" disabled>
+                                <i class="fas fa-stop"></i> 停止选择
+                            </button>
+                        </div>
+                    </div>
 
-                <!-- 二级选择器：人格选择 -->
-                <div class="selector-section" style="margin-top: 40px;">
-                    <h2 class="selector-title">
-                        <i class="fas fa-mask"></i> 二级选择 - 罪人人格
-                    </h2>
-                    <div class="scroll-container" id="persona-scroll-container">
-                        <div id="persona-scroll" class="scroll-list"></div>
+                    <!-- 二级选择器：人格选择 -->
+                    <div class="selector-section" style="margin-top: 40px;">
+                        <h2 class="selector-title">
+                            <i class="fas fa-mask"></i> 二级选择 - 罪人人格
+                        </h2>
+                        <div class="scroll-container" id="persona-scroll-container">
+                            <div id="persona-scroll" class="scroll-list"></div>
+                        </div>
+                        <div class="selector-controls">
+                            <button id="persona-start-btn" class="control-btn" disabled>
+                                <i class="fas fa-play"></i> 开始滚动
+                            </button>
+                            <button id="persona-stop-btn" class="control-btn" disabled>
+                                <i class="fas fa-stop"></i> 停止选择
+                            </button>
+                        </div>
                     </div>
-                    <div class="selector-controls">
-                        <button id="persona-start-btn" class="control-btn" disabled>
-                            <i class="fas fa-play"></i> 开始滚动
-                        </button>
-                        <button id="persona-stop-btn" class="control-btn" disabled>
-                            <i class="fas fa-stop"></i> 停止选择
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 结果显示区域 -->
-    <div class="result-section">
-                <h3 class="result-title">
-                    <i class="fas fa-trophy"></i> 选择结果
-                </h3>
-                <div class="result-content">
-                    <p><span class="highlight">当前选中罪人：</span><span id="selected-sinner">未选择</span></p>
-                    <p><span class="highlight">当前选中人格：</span><span id="selected-persona">未选择</span></p>
+                    <!-- 结果显示区域 -->
+                    <div class="result-section">
+                        <h3 class="result-title">
+                            <i class="fas fa-trophy"></i> 选择结果
+                        </h3>
+                        <div class="result-content">
+                            <p><span class="highlight">当前选中罪人：</span><span id="selected-sinner">未选择</span></p>
+                            <p><span class="highlight">当前选中人格：</span><span id="selected-persona">未选择</span></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

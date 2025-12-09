@@ -64,24 +64,15 @@ let isSinnerScrolling = false;
 let isPersonaScrolling = false;
 const itemHeight = Config.itemHeight; // 每个项目高度
 
-// 新增变量：筛选后的罪人数据
-let filteredSinnerData = [...sinnerData]; // 默认包含所有罪人
-
-// 新增变量：筛选后的人格数据
-let filteredPersonalityData = {};
-
-// 新增变量：存储原始筛选状态，用于检测是否有更改
-let originalFilteredSinnerData = [];
-let originalFilteredPersonalityData = {};
-let hasUnsavedChanges = false;
-
-// 挂载到window对象，供其他模块访问
-window.filteredSinnerData = filteredSinnerData;
-window.filteredPersonalityData = filteredPersonalityData;
-window.hasUnsavedChanges = hasUnsavedChanges;
-// 挂载当前选中的角色信息
-window.currentSelectedSinner = currentSelectedSinner;
-window.currentSelectedPersona = currentSelectedPersona;
+// 直接在window对象上定义筛选相关变量，确保所有模块使用相同的数据
+window.filteredSinnerData = [...sinnerData]; // 默认包含所有罪人
+window.filteredPersonalityData = {};
+window.originalFilteredSinnerData = [...sinnerData]; // 默认包含所有罪人
+window.originalFilteredPersonalityData = {};
+window.hasUnsavedChanges = false;
+// 初始化当前选中的角色信息
+window.currentSelectedSinner = null;
+window.currentSelectedPersona = null;
 
 
 
@@ -182,8 +173,8 @@ function init() {
             sinnerItems,
             itemHeight,
             sinnerData,
-            filteredSinnerData,
-            filteredPersonalityData
+            filteredSinnerData: window.filteredSinnerData,
+            filteredPersonalityData: window.filteredPersonalityData
         }
     );
     
@@ -191,7 +182,7 @@ function init() {
     Filters.createSinnerFilter();
     
     // 初始化罪人滚动列表
-    createSinnerScrollList(filteredSinnerData);
+    createSinnerScrollList(window.filteredSinnerData);
     
     // 初始化人格滚动列表
     createPersonaScrollList(['请先选择罪人']);
@@ -214,18 +205,20 @@ function init() {
         const item = e.target.closest('.scroll-item');
         if (item) {
             const index = parseInt(item.dataset.originalIndex);
-            const sinner = filteredSinnerData[index];
+            const sinner = window.filteredSinnerData[index];
             currentSelectedSinner = sinner;
+            window.currentSelectedSinner = sinner;
             selectedSinnerEl.textContent = sinner.name;
             
             // 重置人格选择
             currentSelectedPersona = null;
+            window.currentSelectedPersona = null;
             selectedPersonaEl.textContent = '未选择';
             
             // 更新人格列表
             const filteredPersonalities = sinner.personalities.filter((persona, index) => {
-                return filteredPersonalityData[sinner.id] ? 
-                       (filteredPersonalityData[sinner.id][index] !== false) : 
+                return window.filteredPersonalityData[sinner.id] ? 
+                       (window.filteredPersonalityData[sinner.id][index] !== false) : 
                        true;
             });
             createPersonaScrollList(filteredPersonalities);
@@ -240,6 +233,7 @@ function init() {
             const persona = personaItems[index];
             if (typeof persona === 'object' && persona.name) {
                 currentSelectedPersona = persona;
+                window.currentSelectedPersona = persona;
                 selectedPersonaEl.textContent = persona.name;
             }
         }

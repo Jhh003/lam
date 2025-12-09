@@ -192,8 +192,8 @@ function createPersonaScrollList(items) {
         return;
     }
     
-    // 如果只有一个人格，禁用开始按钮
-    personaStartBtn.disabled = items.length === 1;
+    // 如果只有一个人格，启用开始按钮（与罪人滚动保持一致的逻辑）
+    personaStartBtn.disabled = false;
     
     // 创建足够多的项目以实现平滑滚动效果
     const itemCount = items.length * 10;
@@ -261,6 +261,7 @@ function createPersonaScrollList(items) {
             highlightSelectedItem(personaScroll, 0);
             // 直接选择该人格
             currentSelectedPersona = items[0];
+            window.currentSelectedPersona = currentSelectedPersona; // 更新window对象
             console.log('当前选中人格:', currentSelectedPersona);
             if (currentSelectedPersona && currentSelectedPersona.name) {
                 selectedPersonaEl.textContent = currentSelectedPersona.name;
@@ -477,10 +478,24 @@ function stopSinnerScroll() {
 
 // 开始人格滚动
 function startPersonaScroll() {
-    // 检查当前是否有选中的罪人
+    // 先尝试从window对象同步currentSelectedSinner
+    if (!currentSelectedSinner && window.currentSelectedSinner) {
+        currentSelectedSinner = window.currentSelectedSinner;
+    }
+    
+    // 检查当前是否有选中的罪人，如果没有，尝试从filteredSinnerData中获取
     if (!currentSelectedSinner) {
-        alert('请先选择一个罪人！');
-        return;
+        // 如果只有一个罪人，直接选中该罪人
+        if (window.filteredSinnerData && window.filteredSinnerData.length === 1) {
+            currentSelectedSinner = window.filteredSinnerData[0];
+            window.currentSelectedSinner = currentSelectedSinner;
+            selectedSinnerEl.textContent = currentSelectedSinner.name;
+            // 高亮显示选中的罪人
+            highlightSelectedItem(sinnerScroll, 0);
+        } else {
+            alert('请先选择一个罪人！');
+            return;
+        }
     }
     
     // 检查当前罪人的人格数量
@@ -536,8 +551,8 @@ function stopPersonaScroll() {
     // 检查当前罪人的人格数量
     if (currentSelectedSinner) {
         const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
-            return filteredPersonalityData[currentSelectedSinner.id] && 
-                   filteredPersonalityData[currentSelectedSinner.id][index] !== false;
+            return window.filteredPersonalityData[currentSelectedSinner.id] && 
+                   window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
         });
         
         const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
@@ -549,13 +564,16 @@ function stopPersonaScroll() {
             }
             
             const selectedPersona = personasToShow[0];
+            // 设置当前选中的人格
+            currentSelectedPersona = selectedPersona;
+            window.currentSelectedPersona = selectedPersona;
             selectedPersonaEl.textContent = typeof selectedPersona === 'object' ? selectedPersona.name : selectedPersona;
             
             // 高亮显示
             highlightSelectedItem(personaScroll, 0);
             
-            // 当只有一个人格时，禁用开始按钮（与createPersonaScrollList保持一致）
-            personaStartBtn.disabled = personasToShow.length === 1;
+            // 当只有一个人格时，启用开始按钮（与createPersonaScrollList保持一致）
+            personaStartBtn.disabled = false;
             personaStopBtn.disabled = true;
             return;
         }
@@ -568,10 +586,10 @@ function stopPersonaScroll() {
     isPersonaScrolling = false;
     
     // 获取筛选后的人格列表
-    const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
-        return filteredPersonalityData[currentSelectedSinner.id] && 
-               filteredPersonalityData[currentSelectedSinner.id][index] !== false;
-    });
+            const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
+                return window.filteredPersonalityData[currentSelectedSinner.id] &&
+                       window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
+            });
     
     const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
     

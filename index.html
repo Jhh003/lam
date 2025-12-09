@@ -26,7 +26,14 @@
 
         <!-- 主选择器页面 -->
         <div id="main-selector-page">
-            <div class="selector-container">
+            <div class="page-content">
+                <div class="selector-container">
+                <!-- 单通时间计时按钮 -->
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <button id="timer-toggle-btn" class="control-btn primary-btn">
+                        <i class="fas fa-clock"></i> 单通时间计时
+                    </button>
+                </div>
                 <!-- 一级选择器：罪人选择 -->
                 <div class="selector-section">
                     <h2 class="selector-title">
@@ -63,9 +70,11 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- 结果显示区域 -->
-            <div class="result-section">
+    <!-- 结果显示区域 -->
+    <div class="result-section">
                 <h3 class="result-title">
                     <i class="fas fa-trophy"></i> 选择结果
                 </h3>
@@ -140,5 +149,33 @@
     </div>
 
     <script type="module" src="js/main.js"></script>
+    
+    <!-- 计时器弹窗 -->
+    <div id="timer-modal" class="timer-modal">
+        <div class="timer-modal-content">
+            <div class="timer-modal-header">
+                <h3 class="timer-modal-title">
+                    <i class="fas fa-clock"></i> 单通时间计时
+                </h3>
+                <button id="timer-close-btn" class="timer-close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="timer-modal-body">
+                <div id="timer-display" class="timer-display">00:00:00</div>
+                <div class="timer-controls">
+                    <button id="timer-start-btn" class="control-btn">
+                        <i class="fas fa-play"></i> 开始
+                    </button>
+                    <button id="timer-pause-btn" class="control-btn" disabled>
+                        <i class="fas fa-pause"></i> 暂停
+                    </button>
+                    <button id="timer-reset-btn" class="control-btn">
+                        <i class="fas fa-redo"></i> 重置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

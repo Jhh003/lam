@@ -187,8 +187,25 @@ const Filters = {
             // 更新罪人列表，传递完整的罪人对象数组
             createSinnerScrollList(window.filteredSinnerData);
             
+            // 获取DOM元素
+            const selectedSinnerEl = document.getElementById('selected-sinner');
+            const selectedPersonaEl = document.getElementById('selected-persona');
+            
+            // 如果只有一个罪人，自动选中它
+            if (window.filteredSinnerData.length === 1) {
+                window.currentSelectedSinner = window.filteredSinnerData[0];
+                if (selectedSinnerEl) selectedSinnerEl.textContent = window.currentSelectedSinner.name;
+                
+                // 更新人格列表
+                const filteredPersonalities = window.currentSelectedSinner.personalities.filter((persona, index) => {
+                    return window.filteredPersonalityData[window.currentSelectedSinner.id] ? 
+                           window.filteredPersonalityData[window.currentSelectedSinner.id][index] !== false : 
+                           true;
+                });
+                createPersonaScrollList(filteredPersonalities);
+            } 
             // 如果当前有选中的罪人，检查其是否仍在筛选列表中
-            if (window.currentSelectedSinner) {
+            else if (window.currentSelectedSinner) {
                 const sinnerStillInList = window.filteredSinnerData.some(s => s.id === window.currentSelectedSinner.id);
                 if (sinnerStillInList) {
                     // 更新人格列表
@@ -202,9 +219,6 @@ const Filters = {
                     // 如果选中的罪人已不在列表中，重置选择
                     window.currentSelectedSinner = null;
                     window.currentSelectedPersona = null;
-                    
-                    const selectedSinnerEl = document.getElementById('selected-sinner');
-                    const selectedPersonaEl = document.getElementById('selected-persona');
                     
                     if (selectedSinnerEl) selectedSinnerEl.textContent = '未选择';
                     if (selectedPersonaEl) selectedPersonaEl.textContent = '未选择';

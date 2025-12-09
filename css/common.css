@@ -191,6 +191,8 @@ h1 {
     flex-wrap: wrap;
     gap: 10px;
     margin: 15px 0;
+    overflow-x: auto;
+    padding: 5px 0;
 }
 
 .sinner-checkbox-label {
@@ -342,9 +344,27 @@ h1 {
 /* 分页样式 */
 .pagination {
     display: flex;
-    justify-content: center;
+    overflow-x: auto;
+    justify-content: flex-start;
     margin: 20px 0;
     gap: 10px;
+    padding: 10px 0;
+    scrollbar-width: thin;
+    scrollbar-color: #d4af37 #1a1a2e;
+}
+
+.pagination::-webkit-scrollbar {
+    height: 6px;
+}
+
+.pagination::-webkit-scrollbar-track {
+    background: #1a1a2e;
+    border-radius: 3px;
+}
+
+.pagination::-webkit-scrollbar-thumb {
+    background: #d4af37;
+    border-radius: 3px;
 }
 
 .page-btn {
@@ -354,6 +374,9 @@ h1 {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: center;
 }
 
 .page-btn.active {
@@ -376,23 +399,119 @@ h1 {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-    .container {
+    body {
         padding: 10px;
+    }
+    
+    .container {
+        padding: 0;
+        max-width: 100%;
     }
     
     h1 {
         font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    
+    .description {
+        font-size: 0.9rem;
+    }
+    
+    #countdown {
+        font-size: 1.2rem;
     }
     
     .selector-title {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .selector-container {
+        padding: 20px;
+    }
+    
+    .scroll-container {
+        margin: 15px 0;
     }
     
     .scroll-item {
-        font-size: 1rem;
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+    
+    .scroll-item-content {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .filter-controls {
+        gap: 5px;
+    }
+    
+    .control-btn {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .sinner-checkbox-label {
+        font-size: 0.8rem;
+        padding: 6px 10px;
     }
     
     .personality-settings-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+    }
+    
+    .personality-setting-card {
+        padding: 10px;
+    }
+    
+    .personality-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+    }
+    
+    .personality-name {
+        font-size: 0.8rem;
+    }
+    
+    .settings-page {
+        padding: 20px;
+    }
+    
+    .settings-title {
+        font-size: 1.5rem;
+    }
+    
+    .settings-section-title {
+        font-size: 1.2rem;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    #sinner-filter {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
+    }
+    
+    .navigation-buttons {
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .nav-btn {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .instructions {
+        padding: 15px;
+    }
+    
+    .instructions ul {
+        padding-left: 15px;
     }
 }

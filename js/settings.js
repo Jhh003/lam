@@ -214,26 +214,31 @@ function createPersonalitySettings() {
                 container.appendChild(pageDiv);
                 
                 // 创建分页按钮
-                const pageBtn = document.createElement('button');
-                pageBtn.className = 'page-btn';
-                pageBtn.textContent = sinnerIndex + 1;
-                pageBtn.dataset.sinnerId = sinner.id;
-                if (sinnerIndex === 0) {
-                    pageBtn.classList.add('active');
-                }
-                pageBtn.addEventListener('click', (e) => {
-                    // 切换页面
-                    document.querySelectorAll('.personality-page').forEach(page => {
-                        page.classList.remove('active');
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = 'page-btn';
+                    pageBtn.textContent = sinnerIndex + 1;
+                    pageBtn.title = sinner.name;
+                    pageBtn.dataset.sinnerId = sinner.id;
+                    if (sinnerIndex === 0) {
+                        pageBtn.classList.add('active');
+                    }
+                    pageBtn.addEventListener('click', (e) => {
+                        // 切换页面
+                        document.querySelectorAll('.personality-page').forEach(page => {
+                            page.classList.remove('active');
+                        });
+                        document.querySelectorAll('.page-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                        });
+                        
+                        const targetSinnerId = e.target.dataset.sinnerId;
+                        const targetPage = document.querySelector(`.personality-page[data-sinner-id="${targetSinnerId}"]`);
+                        targetPage.classList.add('active');
+                        e.target.classList.add('active');
+                        
+                        // 页面切换时自动滚动到顶部
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     });
-                    document.querySelectorAll('.page-btn').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    
-                    const targetSinnerId = e.target.dataset.sinnerId;
-                    document.querySelector(`.personality-page[data-sinner-id="${targetSinnerId}"]`).classList.add('active');
-                    e.target.classList.add('active');
-                });
                 
                 paginationContainer.appendChild(pageBtn);
             });

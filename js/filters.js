@@ -115,24 +115,33 @@ const Filters = {
 
     // 验证筛选设置是否满足保底条件
     validateFilterSettings() {
-        // 检查是否至少选择了一个罪人
-        if (window.filteredSinnerData.length === 0) {
+        // 检查是否至少选择了一个罪人（兼容没有初始化的情况）
+        if (!window.filteredSinnerData || window.filteredSinnerData.length === 0) {
             alert('请至少选择一个罪人！');
             return false;
         }
         
         // 检查每个罪人是否至少选择了一个人格
+        // NOTE: 项目中其它地方（例如创建人格滚动列表）将“未为该罪人显式设置人格筛选”视为“所有人格均被选中”。
+        // 为了与其他逻辑保持一致，这里也采用逐索引检查：只有当该罪人的每一个人格都被明确设置为 false 时，才认为未选中任何人格。
         const sinnersWithoutPersonalities = [];
+        const personaData = window.filteredPersonalityData || {};
+
         for (const sinner of window.filteredSinnerData) {
-            let hasPersonality = false;
-            if (window.filteredPersonalityData[sinner.id]) {
-                // 检查该罪人的人格对象中是否有值为true的人格
-                hasPersonality = Object.values(window.filteredPersonalityData[sinner.id]).some(value => value === true);
-            } else {
-                // 如果没有为该罪人设置人格筛选（初始状态），则默认认为所有人格都被选择
-                hasPersonality = true;
+            const filterForSinner = personaData[sinner.id];
+            let hasPersonality = true; // 默认认为有可选人格（即缺省为全部选中）
+
+            if (filterForSinner) {
+                // 如果存在该罪人的筛选对象，则逐个按索引判断：缺失或非 false 的项视为被选中
+                hasPersonality = false; // 先假设没有，下面检查是否有至少一个不是明确 false 的人格
+                for (let i = 0; i < (sinner.personalities ? sinner.personalities.length : 0); i++) {
+                    if (filterForSinner[i] !== false) {
+                        hasPersonality = true;
+                        break;
+                    }
+                }
             }
-            
+
             if (!hasPersonality) {
                 sinnersWithoutPersonalities.push(sinner.name);
             }

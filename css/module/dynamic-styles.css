@@ -318,9 +318,9 @@
     font-weight: 700;
     text-align: center;
     margin-bottom: 30px;
-    color: #2c3e50; /* 更深的颜色，提高可读性 */
+    color: #333;
     letter-spacing: 2px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* 增强阴影效果 */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .timer-controls {
@@ -333,9 +333,7 @@
 /* 计时器按钮样式 - TimePulse风格 */
 #timer-start-btn,
 #timer-pause-btn,
-#timer-reset-btn,
-#upload-ranking-btn,
-#view-ranking-btn {
+#timer-reset-btn {
     padding: 12px 24px;
     font-size: 1rem;
     font-weight: 500;
@@ -346,20 +344,9 @@
     display: inline-flex;
     justify-content: center;
     align-items: center;
+    gap: 8px;
     color: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 120px;
-    text-align: center;
-    vertical-align: middle;
-}
-
-/* 为计时器按钮内的图标添加间距 */
-#timer-start-btn i,
-#timer-pause-btn i,
-#timer-reset-btn i,
-#upload-ranking-btn i,
-#view-ranking-btn i {
-    margin-right: 6px; /* 图标右侧与文字的间距 */
 }
 
 #timer-start-btn {
@@ -389,91 +376,11 @@
 
 #timer-start-btn:disabled,
 #timer-pause-btn:disabled,
-#timer-reset-btn:disabled,
-#upload-ranking-btn:disabled,
-#view-ranking-btn:disabled {
+#timer-reset-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
-}
-
-/* 排行榜按钮样式 */
-#upload-ranking-btn {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    margin: 5px;
-}
-
-#view-ranking-btn {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    margin: 5px;
-}
-
-#upload-ranking-btn:hover,
-#view-ranking-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-#upload-ranking-btn:active,
-#view-ranking-btn:active {
-    transform: translateY(0);
-}
-
-/* 计时器排行榜区域样式 */
-.timer-ranking {
-    margin-top: 30px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 15px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.timer-ranking-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.ranking-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.form-group label {
-    font-weight: 500;
-    color: #2c3e50;
-    font-size: 0.9rem;
-}
-
-.form-group input {
-    padding: 10px 15px;
-    border: 2px solid #e1e8ed;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    transition: border-color 0.3s ease;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #4facfe;
-    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-}
-
-.ranking-actions {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
 }
 
 /* 响应式设计 */
@@ -487,19 +394,9 @@
         font-size: 2.5rem;
     }
     
-    .timer-controls,
-    .ranking-actions {
+    .timer-controls {
         flex-direction: column;
         align-items: center;
-    }
-    
-    #timer-start-btn,
-    #timer-pause-btn,
-    #timer-reset-btn,
-    #upload-ranking-btn,
-    #view-ranking-btn {
-        width: 100%;
-        max-width: 250px;
     }
     
     #timer-start-btn,

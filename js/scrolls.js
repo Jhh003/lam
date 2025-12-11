@@ -499,10 +499,14 @@ function startPersonaScroll() {
         }
     }
     
-    // 检查当前罪人的人格数量
+    // 检查当前罪人的人格数量（修复异常2：正确过滤人格）
     const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
-        return window.filteredPersonalityData[currentSelectedSinner.id] && 
-               window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
+        // 如果没有设置该罪人的筛选数据，默认选中所有人格
+        if (!window.filteredPersonalityData[currentSelectedSinner.id]) {
+            return true;
+        }
+        // 如果设置了筛选数据，只有明确不为false的才选中
+        return window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
     });
     
     const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
@@ -549,11 +553,15 @@ function startPersonaScroll() {
 
 // 停止人格滚动并定位到中心
 function stopPersonaScroll() {
-    // 检查当前罪人的人格数量
+    // 检查当前罪人的人格数量（修复异常2：正确过滤人格）
     if (currentSelectedSinner) {
         const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
-            return window.filteredPersonalityData[currentSelectedSinner.id] && 
-                   window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
+            // 如果没有设置该罪人的筛选数据，默认选中所有人格
+            if (!window.filteredPersonalityData[currentSelectedSinner.id]) {
+                return true;
+            }
+            // 如果设置了筛选数据，只有明确不为false的才选中
+            return window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
         });
         
         const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
@@ -586,11 +594,15 @@ function stopPersonaScroll() {
     personaScrollInterval = null;
     isPersonaScrolling = false;
     
-    // 获取筛选后的人格列表
-            const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
-                return window.filteredPersonalityData[currentSelectedSinner.id] &&
-                       window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
-            });
+    // 获取筛选后的人格列表（修复异常2：正确过滤人格）
+    const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {
+        // 如果没有设置该罪人的筛选数据，默认选中所有人格
+        if (!window.filteredPersonalityData[currentSelectedSinner.id]) {
+            return true;
+        }
+        // 如果设置了筛选数据，只有明确不为false的才选中
+        return window.filteredPersonalityData[currentSelectedSinner.id][index] !== false;
+    });
     
     const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
     

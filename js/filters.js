@@ -206,11 +206,24 @@ const Filters = {
                 window.currentSelectedSinner = window.filteredSinnerData[0];
                 if (selectedSinnerEl) selectedSinnerEl.textContent = window.currentSelectedSinner.name;
                 
-                // 更新人格列表
+                // 高亮显示该罪人（修复异常1：确保头像和名字显示）
+                import('./scrolls.js').then(({ highlightSelectedItem }) => {
+                    const sinnerScroll = document.getElementById('sinner-scroll');
+                    if (sinnerScroll) {
+                        setTimeout(() => {
+                            highlightSelectedItem(sinnerScroll, 0);
+                        }, 100);
+                    }
+                });
+                
+                // 更新人格列表（修复异常2：正确过滤人格）
                 const filteredPersonalities = window.currentSelectedSinner.personalities.filter((persona, index) => {
-                    return window.filteredPersonalityData[window.currentSelectedSinner.id] ? 
-                           window.filteredPersonalityData[window.currentSelectedSinner.id][index] !== false : 
-                           true;
+                    // 如果没有设置该罪人的筛选数据，默认选中所有人格
+                    if (!window.filteredPersonalityData[window.currentSelectedSinner.id]) {
+                        return true;
+                    }
+                    // 如果设置了筛选数据，只有明确不为false的才选中
+                    return window.filteredPersonalityData[window.currentSelectedSinner.id][index] !== false;
                 });
                 createPersonaScrollList(filteredPersonalities);
             } 

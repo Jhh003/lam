@@ -272,6 +272,9 @@ function createPersonaScrollList(items) {
                 selectedPersonaEl.textContent = '未选择';
             }
             personaStartBtn.disabled = true;
+            
+            // 注意：此处不触发彩蛋检测，因为这只是创建列表和显示
+            // 彩蛋检测仅在 stopPersonaScroll() 中真正完成随机抽取后才触发
         }, 0); // 使用0延迟确保在DOM更新后执行
     } else {
         personaStartBtn.disabled = false;
@@ -394,6 +397,15 @@ function stopSinnerScroll() {
         console.log('即将显示的人格:', personasToShow);
         createPersonaScrollList(personasToShow);
         
+        // 【修复多罪人彩蛋触发】如果只有一个人格，触发彩蛋检测
+        // 这种情况发生在完成罪人抽取后，人格列表已创建且只有一个人格
+        if (personasToShow.length === 1 && typeof personasToShow[0] === 'object') {
+            // 延迟执行，确保 createPersonaScrollList 已完成DOM更新和状态设置
+            setTimeout(() => {
+                checkEasterEgg();
+            }, 50);
+        }
+        
         return;
     }
     
@@ -475,6 +487,15 @@ function stopSinnerScroll() {
     // 如果没有筛选的人格，则显示提示信息
     const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
     createPersonaScrollList(personasToShow);
+    
+    // 【修复多罪人彩蛋触发】如果只有一个人格，触发彩蛋检测
+    // 这种情况发生在完成罪人抽取后，人格列表已创建且只有一个人格
+    if (personasToShow.length === 1 && typeof personasToShow[0] === 'object') {
+        // 延迟执行，确保 createPersonaScrollList 已完成DOM更新和状态设置
+        setTimeout(() => {
+            checkEasterEgg();
+        }, 50);
+    }
 }
 
 // 开始人格滚动

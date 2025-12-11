@@ -1,4 +1,5 @@
 import { Config } from '../data/config.js';
+import Modal from './modal.js';
 
 // 过滤模块
 const Filters = {
@@ -117,7 +118,7 @@ const Filters = {
     validateFilterSettings() {
         // 检查是否至少选择了一个罪人（兼容没有初始化的情况）
         if (!window.filteredSinnerData || window.filteredSinnerData.length === 0) {
-            alert('请至少选择一个罪人！');
+            Modal.alert('请至少选择一个罪人！', '提示');
             return false;
         }
         
@@ -148,7 +149,7 @@ const Filters = {
         }
         
         if (sinnersWithoutPersonalities.length > 0) {
-            alert(`请为以下罪人至少选择一个人格：\n${sinnersWithoutPersonalities.join('\n')}`);
+            Modal.alert(`请为以下罪人至少选择一个人格：\n${sinnersWithoutPersonalities.join('\n')}`, '提示');
             return false;
         }
         
@@ -185,7 +186,7 @@ const Filters = {
     // 检查是否有未保存的更改
     checkUnsavedChanges() {
         if (window.hasUnsavedChanges) {
-            return confirm('您有未保存的更改，确定要离开吗？');
+            return Modal.confirm('您有未保存的更改，确定要离开吗？', '确认');
         }
         return true;
     },

@@ -1,5 +1,9 @@
 // 倒计时功能实现
 (function () {
+    // 导入弹窗模块
+    import('./modal.js').then(({ default: Modal }) => {
+        window.Modal = Modal; // 全局可用
+    });
     // 获取当前时间的函数，优先使用API获取服务器时间，失败则回退到本地时间
     function getCurrentTime() {
         // 尝试从API获取服务器时间
@@ -155,7 +159,8 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         // 保存到本地排行榜
         function saveToLocalRanking() {
             if (seconds === 0) {
-                alert('请先完成一次游戏计时再保存！');
+                // 使用自定义弹窗
+                setTimeout(() => window.Modal?.alert('请先完成一次游戏计时再保存！', '提示'), 100);
                 return;
             }
             
@@ -194,7 +199,8 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 // 保存回localStorage
                 localStorage.setItem('personalRanking', JSON.stringify(records));
                 
-                alert('保存成功！记录已添加到本地排行榜');
+                // 使用自定义弹窗
+                setTimeout(() => window.Modal?.alert('保存成功！记录已添加到本地排行榜', '成功'), 100);
                 
                 // 重置备注输入框（安全检查元素是否存在）
                 if (playerNoteInput) {
@@ -202,7 +208,8 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 }
             } catch (error) {
                 console.error('保存失败:', error);
-                alert(`保存失败: ${error.message}\n\n详细信息请查看浏览器控制台`);
+                // 使用自定义弹窗
+                setTimeout(() => window.Modal?.alert(`保存失败: ${error.message}\n\n详细信息请查看浏览器控制台`, '错误'), 100);
             } finally {
                 uploadRankingBtn.disabled = false;
                 uploadRankingBtn.innerHTML = '<i class="fas fa-save"></i> 保存到排行榜';

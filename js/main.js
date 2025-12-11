@@ -8,6 +8,8 @@ import { secureRandInt } from '../data/utils/helpers.js';
 import { Config } from '../data/config.js';
 // 导入筛选模块
 import Filters from './filters.js';
+// 导入弹窗模块
+import Modal from './modal.js';
 // 导入滚动模块
 import {
     initScrollModule,
@@ -77,10 +79,10 @@ window.currentSelectedPersona = null;
 
 
 // 页面导航功能
-mainPageBtn.addEventListener('click', () => {
+mainPageBtn.addEventListener('click', async () => {
     // 检查是否有未保存的更改
     if (window.hasUnsavedChanges) {
-        const choice = confirm('您有未保存的更改，是否保存后再离开？\n\n点击"确定"保存并返回，点击"取消"不保存直接返回。');
+        const choice = await Modal.confirm('您有未保存的更改，是否保存后再离开？\n\n点击“确定”保存并返回，点击“取消”不保存直接返回。', '确认');
         if (choice) {
             // 保存筛选设置（applyFilters内部会调用validateFilterSettings）
             Filters.applyFilters();
@@ -123,8 +125,9 @@ if (applyFiltersBtn) {
 // 重置筛选设置按钮
 const resetFiltersBtn = document.getElementById('reset-filters-btn');
 if (resetFiltersBtn) {
-    resetFiltersBtn.addEventListener('click', () => {
-        if (confirm('确定要重置所有筛选设置吗？')) {
+    resetFiltersBtn.addEventListener('click', async () => {
+        const confirmed = await Modal.confirm('确定要重置所有筛选设置吗？', '确认');
+        if (confirmed) {
             // 重置所有筛选设置
             window.filteredSinnerData = [...window.originalFilteredSinnerData];
             window.filteredPersonalityData = JSON.parse(JSON.stringify(window.originalFilteredPersonalityData));

@@ -230,7 +230,7 @@
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -2px -2px 5px rgba(70, 70, 70, 0.1), 3px 3px 10px rgba(0, 0, 0, 0.4);
 }
 
-/* 计时器弹窗样式 - 模仿TimePulse设计 */
+/* 计时器弹窗样式 - 优化版 */
 .timer-modal {
     display: none;
     position: fixed;
@@ -238,8 +238,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(3px);
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(5px);
     z-index: 1000;
     justify-content: center;
     align-items: center;
@@ -250,11 +250,12 @@
 }
 
 .timer-modal-content {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, #2a2d4a 0%, #1e1f3a 100%);
+    border: 2px solid rgba(150, 130, 255, 0.3);
+    border-radius: 24px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5), 0 0 40px rgba(150, 130, 255, 0.15);
     width: 90%;
-    max-width: 380px;
+    max-width: 440px;
     overflow: hidden;
     animation: modalSlideIn 0.3s ease-out;
 }
@@ -262,7 +263,7 @@
 @keyframes modalSlideIn {
     from {
         opacity: 0;
-        transform: translateY(-50px) scale(0.9);
+        transform: translateY(-30px) scale(0.95);
     }
     to {
         opacity: 1;
@@ -274,104 +275,189 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 25px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    padding: 22px 28px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.timer-modal-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    to {
+        left: 100%;
+    }
 }
 
 .timer-modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.3rem;
+    font-weight: 700;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
 }
 
 .timer-close-btn {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     cursor: pointer;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 50%;
-    transition: background-color 0.2s ease;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(10px);
 }
 
 .timer-close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .timer-modal-body {
-    padding: 30px 25px;
+    padding: 35px 30px 30px;
 }
 
 .timer-display {
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    font-size: 3.5rem;
-    font-weight: 700;
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    font-size: 4rem;
+    font-weight: 800;
     text-align: center;
-    margin-bottom: 30px;
-    color: #333;
-    letter-spacing: 2px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 35px;
+    color: #e0e7ff;
+    letter-spacing: 6px;
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    padding: 15px 0;
+    border-radius: 12px;
+    position: relative;
+}
+
+.timer-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+    border-radius: 12px;
+    z-index: -1;
 }
 
 .timer-controls {
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 12px;
     flex-wrap: wrap;
+    margin-bottom: 35px;
 }
 
-/* 计时器按钮样式 - TimePulse风格 */
+/* 计时器按钮样式 - 优化版 */
 #timer-start-btn,
 #timer-pause-btn,
 #timer-reset-btn {
-    padding: 12px 24px;
+    padding: 13px 26px;
     font-size: 1rem;
-    font-weight: 500;
-    border-radius: 25px;
+    font-weight: 600;
+    border-radius: 28px;
     border: none;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: inline-flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
     color: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.3px;
+}
+
+#timer-start-btn::before,
+#timer-pause-btn::before,
+#timer-reset-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+#timer-start-btn:hover::before,
+#timer-pause-btn:hover::before,
+#timer-reset-btn:hover::before {
+    width: 300px;
+    height: 300px;
 }
 
 #timer-start-btn {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 #timer-pause-btn {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 #timer-reset-btn {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-#timer-start-btn:hover,
-#timer-pause-btn:hover,
+#timer-start-btn:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.35);
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+#timer-pause-btn:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.35);
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
 #timer-reset-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.35);
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
 }
 
 #timer-start-btn:active,
 #timer-pause-btn:active,
 #timer-reset-btn:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
 }
 
 #timer-start-btn:disabled,
@@ -380,30 +466,230 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 排行榜区域样式 */
+.timer-ranking {
+    margin-top: 30px;
+    padding-top: 28px;
+    border-top: 2px solid rgba(139, 92, 246, 0.2);
+}
+
+.timer-ranking-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #c7d2fe;
+    margin: 0 0 20px 0;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.ranking-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #a5b4fc;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.form-group input[type="text"] {
+    padding: 14px 18px;
+    font-size: 1rem;
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 14px;
+    background: rgba(30, 31, 58, 0.8);
+    color: #e0e7ff;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.form-group input[type="text"]::placeholder {
+    color: #818cf8;
+    opacity: 0.6;
+    font-weight: 400;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    background: rgba(30, 31, 58, 0.95);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), inset 0 2px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.ranking-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ranking-actions .control-btn {
+    flex: 1;
+    min-width: 160px;
+    padding: 13px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 28px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ranking-actions .control-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.ranking-actions .control-btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.ranking-actions .primary-btn {
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ranking-actions .primary-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(236, 72, 153, 0.35);
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+}
+
+.ranking-actions .control-btn:not(.primary-btn) {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ranking-actions .control-btn:not(.primary-btn):hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.35);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.ranking-actions .control-btn:active {
+    transform: translateY(0) scale(0.98);
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
     .timer-modal-content {
         width: 95%;
+        max-width: 100%;
         margin: 20px;
     }
     
+    .timer-modal-header {
+        padding: 18px 22px;
+    }
+    
+    .timer-modal-title {
+        font-size: 1.15rem;
+    }
+    
+    .timer-modal-body {
+        padding: 28px 22px 25px;
+    }
+    
+    .timer-display {
+        font-size: 3rem;
+        letter-spacing: 4px;
+        margin-bottom: 28px;
+    }
+    
+    .timer-controls {
+        gap: 10px;
+    }
+    
+    #timer-start-btn,
+    #timer-pause-btn,
+    #timer-reset-btn {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        flex: 1;
+        min-width: 90px;
+    }
+    
+    .timer-ranking {
+        margin-top: 25px;
+        padding-top: 25px;
+    }
+    
+    .timer-ranking-title {
+        font-size: 1.05rem;
+        margin-bottom: 16px;
+    }
+    
+    .form-group input[type="text"] {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+    
+    .ranking-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .ranking-actions .control-btn {
+        width: 100%;
+        min-width: auto;
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
     .timer-display {
         font-size: 2.5rem;
+        letter-spacing: 3px;
     }
     
     .timer-controls {
         flex-direction: column;
-        align-items: center;
+        width: 100%;
     }
     
     #timer-start-btn,
     #timer-pause-btn,
     #timer-reset-btn {
         width: 100%;
-        max-width: 200px;
+        min-width: auto;
     }
 }
 
@@ -532,4 +818,137 @@
     background: linear-gradient(145deg, #e6c350, #d4af37);
     transform: translateY(-2px);
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -2px -2px 5px rgba(70, 70, 70, 0.1), 3px 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* 自定义弹窗样式 */
+#custom-modal-container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+}
+
+.modal-overlay {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+}
+
+.modal-box {
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(40, 40, 60, 0.98) 100%);
+    border: 2px solid #d4af37;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(212, 175, 55, 0.3);
+    min-width: 300px;
+    max-width: 500px;
+    width: 90%;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-box {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #d4af37;
+    text-align: center;
+}
+
+.modal-body {
+    padding: 25px 20px;
+}
+
+.modal-message {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #fff;
+    line-height: 1.8;
+    text-align: center;
+    white-space: pre-line;
+}
+
+.modal-footer {
+    padding: 15px 20px 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.modal-btn {
+    padding: 10px 30px;
+    font-size: 1rem;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    min-width: 100px;
+}
+
+.modal-btn-primary {
+    background: linear-gradient(145deg, #d4af37, #b8860b);
+    color: #000;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.modal-btn-primary:hover {
+    background: linear-gradient(145deg, #e6c350, #d4af37);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+}
+
+.modal-btn-secondary {
+    background: linear-gradient(145deg, #555, #444);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.modal-btn-secondary:hover {
+    background: linear-gradient(145deg, #666, #555);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+    .modal-box {
+        min-width: 280px;
+        width: 95%;
+    }
+    
+    .modal-title {
+        font-size: 1.3rem;
+    }
+    
+    .modal-message {
+        font-size: 1rem;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-btn {
+        width: 100%;
+    }
 }

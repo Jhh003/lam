@@ -2,6 +2,7 @@ import { Config } from '../data/config.js';
 import { secureRandInt } from '../data/utils/helpers.js';
 // 导入罪人数据
 import { sinnerData } from '../data/characters.js';
+import Modal from './modal.js';
 
 // 滚动模块 - 负责所有与滚动功能相关的逻辑
 
@@ -280,7 +281,7 @@ function createPersonaScrollList(items) {
 // 开始罪人滚动
 function startSinnerScroll() {
     if (window.filteredSinnerData.length < 1) {
-        alert('请至少选择一个罪人！');
+        Modal.alert('请至少选择一个罪人！', '提示');
         return;
     }
     
@@ -350,7 +351,7 @@ function stopSinnerScroll() {
     // 如果只有一个罪人，直接选中
     if (window.filteredSinnerData.length <= 1) {
         if (window.filteredSinnerData.length === 0) {
-            alert('请至少选择一个罪人！');
+            Modal.alert('请至少选择一个罪人！', '提示');
             return;
         }
         
@@ -404,7 +405,7 @@ function stopSinnerScroll() {
     
     // 从筛选后的罪人中随机选择
     if (window.filteredSinnerData.length === 0) {
-        alert('请至少选择一个罪人！');
+        Modal.alert('请至少选择一个罪人！', '提示');
         sinnerStartBtn.disabled = false;
         sinnerStopBtn.disabled = true;
         return;
@@ -493,7 +494,7 @@ function startPersonaScroll() {
             // 高亮显示选中的罪人
             highlightSelectedItem(sinnerScroll, 0);
         } else {
-            alert('请先选择一个罪人！');
+            Modal.alert('请先选择一个罪人！', '提示');
             return;
         }
     }
@@ -506,7 +507,7 @@ function startPersonaScroll() {
     
     const personasToShow = filteredPersonalities.length > 0 ? filteredPersonalities : ['请先选择人格'];
     if (personasToShow.length < 1) {
-        alert(Config.errorMessages.noPersonasSelected);
+        Modal.alert(Config.errorMessages.noPersonasSelected, '提示');
         return;
     }
     
@@ -559,7 +560,7 @@ function stopPersonaScroll() {
         if (personasToShow.length <= 1) {
             // 直接选中唯一人格（如果有的话）
             if (personasToShow.length === 0) {
-                alert('请至少选择一个人格！');
+                Modal.alert('请至少选择一个人格！', '提示');
                 return;
             }
             
@@ -595,7 +596,7 @@ function stopPersonaScroll() {
     
     // 检查是否有人格被选中
     if (personasToShow.length === 0) {
-        alert('请至少选择一个人格！');
+        Modal.alert('请至少选择一个人格！', '提示');
         personaStartBtn.disabled = false;
         personaStopBtn.disabled = true;
         return;

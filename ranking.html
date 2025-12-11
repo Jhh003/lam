@@ -6,6 +6,7 @@
     <title>蛋筒时间排行榜 - Limbus Company</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/module/dynamic-styles.css">
 </head>
 <body>
     <div class="container">
@@ -19,7 +20,10 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // 导入自定义弹窗模块
+        import Modal from './js/modal.js';
+        
         // 格式化时间（秒 -> HH:MM:SS）
         function formatTime(seconds) {
             const hours = Math.floor(seconds / 3600);
@@ -64,8 +68,9 @@
         }
         
         // 清空所有记录
-        function clearAllRecords() {
-            if (confirm('确定要清空所有排行榜记录吗？此操作不可恢复。')) {
+        async function clearAllRecords() {
+            const confirmed = await Modal.confirm('确定要清空所有排行榜记录吗？此操作不可恢复。', '确认');
+            if (confirmed) {
                 localStorage.removeItem('personalRanking');
                 loadRanking();
             }

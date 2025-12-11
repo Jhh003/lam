@@ -203,44 +203,44 @@ function init() {
     
     // 初始化时，应用按钮还不存在，需要在createPersonalitySettings中创建
     
-    // 添加罪人点击事件
-    sinnerScroll.addEventListener('click', (e) => {
-        const item = e.target.closest('.scroll-item');
-        if (item) {
-            const index = parseInt(item.dataset.originalIndex);
-            const sinner = window.filteredSinnerData[index];
-            currentSelectedSinner = sinner;
-            window.currentSelectedSinner = sinner;
-            selectedSinnerEl.textContent = sinner.name;
-            
-            // 重置人格选择
-            currentSelectedPersona = null;
-            window.currentSelectedPersona = null;
-            selectedPersonaEl.textContent = '未选择';
-            
-            // 更新人格列表
-            const filteredPersonalities = sinner.personalities.filter((persona, index) => {
-                return window.filteredPersonalityData[sinner.id] ? 
-                       (window.filteredPersonalityData[sinner.id][index] !== false) : 
-                       true;
-            });
-            createPersonaScrollList(filteredPersonalities);
-        }
-    });
+    // 【已禁用】添加罪人点击事件 - 根据设计需求，用户不能直接点击选择，只能通过随机抽取
+    // sinnerScroll.addEventListener('click', (e) => {
+    //     const item = e.target.closest('.scroll-item');
+    //     if (item) {
+    //         const index = parseInt(item.dataset.originalIndex);
+    //         const sinner = window.filteredSinnerData[index];
+    //         currentSelectedSinner = sinner;
+    //         window.currentSelectedSinner = sinner;
+    //         selectedSinnerEl.textContent = sinner.name;
+    //         
+    //         // 重置人格选择
+    //         currentSelectedPersona = null;
+    //         window.currentSelectedPersona = null;
+    //         selectedPersonaEl.textContent = '未选择';
+    //         
+    //         // 更新人格列表
+    //         const filteredPersonalities = sinner.personalities.filter((persona, index) => {
+    //             return window.filteredPersonalityData[sinner.id] ? 
+    //                    (window.filteredPersonalityData[sinner.id][index] !== false) : 
+    //                    true;
+    //         });
+    //         createPersonaScrollList(filteredPersonalities);
+    //     }
+    // });
     
-    // 添加人格点击事件
-    personaScroll.addEventListener('click', (e) => {
-        const item = e.target.closest('.scroll-item');
-        if (item) {
-            const index = parseInt(item.dataset.originalIndex);
-            const persona = personaItems[index];
-            if (typeof persona === 'object' && persona.name) {
-                currentSelectedPersona = persona;
-                window.currentSelectedPersona = persona;
-                selectedPersonaEl.textContent = persona.name;
-            }
-        }
-    });
+    // 【已禁用】添加人格点击事件 - 根据设计需求，用户不能直接点击选择，只能通过随机抽取
+    // personaScroll.addEventListener('click', (e) => {
+    //     const item = e.target.closest('.scroll-item');
+    //     if (item) {
+    //         const index = parseInt(item.dataset.originalIndex);
+    //         const persona = personaItems[index];
+    //         if (typeof persona === 'object' && persona.name) {
+    //             currentSelectedPersona = persona;
+    //             window.currentSelectedPersona = persona;
+    //             selectedPersonaEl.textContent = persona.name;
+    //         }
+    //     }
+    // });
     
     // 添加筛选控制按钮事件
     const selectAllBtn = document.getElementById('select-all-btn');

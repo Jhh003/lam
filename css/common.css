@@ -106,6 +106,9 @@ h1 {
     font-size: 1.2rem;
     font-weight: bold;
     border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    cursor: default; /* 禁用点击指针，仅允许通过按钮随机抽取 */
+    user-select: none; /* 禁止文字选择 */
+    pointer-events: none; /* 禁用所有鼠标事件 */
 }
 
 .scroll-item-content {

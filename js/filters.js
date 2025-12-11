@@ -193,7 +193,7 @@ const Filters = {
 
     // 当从设置页面返回主页面时，刷新滚动列表
     refreshScrollsOnReturn() {
-        import('./scrolls.js').then(({ createSinnerScrollList, createPersonaScrollList }) => {
+        import('./scrolls.js').then(({ createSinnerScrollList, createPersonaScrollList, resetPersonaScrollState }) => {
             // 更新罪人列表，传递完整的罪人对象数组
             createSinnerScrollList(window.filteredSinnerData);
             
@@ -203,8 +203,15 @@ const Filters = {
             
             // 如果只有一个罪人，自动选中它
             if (window.filteredSinnerData.length === 1) {
+                // 【修复bug】强制清空之前的选择状态，避免残留旧罪人数据
+                window.currentSelectedSinner = null;
+                window.currentSelectedPersona = null;
+                resetPersonaScrollState(); // 重置人格滚动状态
+                
+                // 设置新的选中罪人
                 window.currentSelectedSinner = window.filteredSinnerData[0];
                 if (selectedSinnerEl) selectedSinnerEl.textContent = window.currentSelectedSinner.name;
+                if (selectedPersonaEl) selectedPersonaEl.textContent = '未选择';
                 
                 // 高亮显示该罪人（修复异常1：确保头像和名字显示）
                 import('./scrolls.js').then(({ highlightSelectedItem }) => {
@@ -242,6 +249,7 @@ const Filters = {
                     // 如果选中的罪人已不在列表中，重置选择
                     window.currentSelectedSinner = null;
                     window.currentSelectedPersona = null;
+                    resetPersonaScrollState(); // 重置人格滚动状态
                     
                     if (selectedSinnerEl) selectedSinnerEl.textContent = '未选择';
                     if (selectedPersonaEl) selectedPersonaEl.textContent = '未选择';
@@ -250,6 +258,13 @@ const Filters = {
                 }
             } else {
                 // 如果没有选中的罪人，显示提示
+                window.currentSelectedSinner = null;
+                window.currentSelectedPersona = null;
+                resetPersonaScrollState(); // 重置人格滚动状态
+                
+                if (selectedSinnerEl) selectedSinnerEl.textContent = '未选择';
+                if (selectedPersonaEl) selectedPersonaEl.textContent = '未选择';
+                
                 createPersonaScrollList(['请先选择罪人']);
             }
         });

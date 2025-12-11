@@ -479,9 +479,27 @@ function stopSinnerScroll() {
 
 // 开始人格滚动
 function startPersonaScroll() {
+    // 【修复bug】强制验证currentSelectedSinner是否在筛选列表中
+    if (currentSelectedSinner && window.filteredSinnerData) {
+        const sinnerStillInList = window.filteredSinnerData.some(s => s.id === currentSelectedSinner.id);
+        if (!sinnerStillInList) {
+            // 如果当前选中的罪人不在筛选列表中，清空并重新获取
+            currentSelectedSinner = null;
+            window.currentSelectedSinner = null;
+        }
+    }
+    
     // 先尝试从window对象同步currentSelectedSinner
     if (!currentSelectedSinner && window.currentSelectedSinner) {
-        currentSelectedSinner = window.currentSelectedSinner;
+        // 再次验证window.currentSelectedSinner是否在筛选列表中
+        if (window.filteredSinnerData) {
+            const sinnerStillInList = window.filteredSinnerData.some(s => s.id === window.currentSelectedSinner.id);
+            if (sinnerStillInList) {
+                currentSelectedSinner = window.currentSelectedSinner;
+            } else {
+                window.currentSelectedSinner = null;
+            }
+        }
     }
     
     // 检查当前是否有选中的罪人，如果没有，尝试从filteredSinnerData中获取
@@ -553,6 +571,25 @@ function startPersonaScroll() {
 
 // 停止人格滚动并定位到中心
 function stopPersonaScroll() {
+    // 【修复bug】强制验证currentSelectedSinner是否在筛选列表中
+    if (currentSelectedSinner && window.filteredSinnerData) {
+        const sinnerStillInList = window.filteredSinnerData.some(s => s.id === currentSelectedSinner.id);
+        if (!sinnerStillInList) {
+            // 如果当前选中的罪人不在筛选列表中，清空并重新获取
+            currentSelectedSinner = null;
+            window.currentSelectedSinner = null;
+            
+            // 如果只有一个罪人，直接选中
+            if (window.filteredSinnerData.length === 1) {
+                currentSelectedSinner = window.filteredSinnerData[0];
+                window.currentSelectedSinner = currentSelectedSinner;
+            } else {
+                Modal.alert('请先选择一个罪人！', '提示');
+                return;
+            }
+        }
+    }
+    
     // 检查当前罪人的人格数量（修复异常2：正确过滤人格）
     if (currentSelectedSinner) {
         const filteredPersonalities = currentSelectedSinner.personalities.filter((persona, index) => {

@@ -756,6 +756,9 @@ const easterEggConfig = {
     5: { // 默尔索 (Meursault)
         '拇指东部指挥官IIII': 'assets/videos/meursault_thumbs.mp4'
     },
+    6: { // 鸿璐 (Hong Lu)
+        "鸿园的君主": 'assets/videos/Hong_Lu_Hong_Yuan_The_King.mp4'
+    },
     9: { // 罗佳 (Rodion)
         '脑叶公司E.G.O:泪锋之剑': 'assets/videos/rodion_tear_sword.mp4'
     }

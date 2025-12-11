@@ -621,6 +621,10 @@ function stopPersonaScroll() {
             // 当只有一个人格时，启用开始按钮（与createPersonaScrollList保持一致）
             personaStartBtn.disabled = false;
             personaStopBtn.disabled = true;
+            
+            // 彩蛋检测：检查是否触发特殊人格彩蛋
+            checkEasterEgg();
+            
             return;
         }
     }
@@ -681,6 +685,9 @@ function stopPersonaScroll() {
     
     personaStartBtn.disabled = false;
     personaStopBtn.disabled = true;
+    
+    // 彩蛋检测：检查是否触发特殊人格彩蛋
+    checkEasterEgg();
 }
 
 // 清除高亮显示
@@ -702,6 +709,162 @@ function highlightSelectedItem(scrollContainer, index) {
             item.classList.add('selected');
         }
     });
+}
+
+// ==================== 通用彩蛋系统框架 ====================
+
+/**
+ * 彩蛋视频配置表：定义触发特定彩蛋的条件和视频资源路径
+ * 格式：{ sinnerId: { personaName: videoPath } }
+ * 
+ * 使用说明：
+ * 1. 准备视频文件，放入 assets/videos/ 目录
+ * 2. 在此配置表中添加映射关系：罪人ID -> 人格名称 -> 视频路径
+ * 3. 人格名称必须与 characters.js 中的 name 字段完全一致
+ * 4. 视频路径相对于项目根目录
+ * 
+ * 示例：为李箱的某个人格添加彩蛋
+ * 1: {
+ *     '脑叶公司E.G.O:庄严哀悼': 'assets/videos/yi_sang_ego_demo.mp4'
+ * }
+ */
+const easterEggConfig = {
+    2: { // 浮士德 (Faust)
+        '黑兽-卯魁首': 'assets/videos/faust_mao_kui_shou.mp4'
+    },
+    5: { // 默尔索 (Meursault)
+        '拇指东部指挥官IIII': 'assets/videos/meursault_thumbs.mp4'
+    },
+    9: { // 罗佳 (Rodion)
+        '脑叶公司E.G.O:泪锋之剑': 'assets/videos/rodion_tear_sword.mp4'
+    }
+    // 扩展示例（取消注释并替换为实际视频路径即可使用）：
+    // 1: { // 李箱 (Yi Sang)
+    //     '脑叶公司E.G.O:庄严哀悼': 'assets/videos/yi_sang_sorrow.mp4'
+    // },
+    // 3: { // 堂吉诃德 (Don Quixote)
+    //     '脑叶公司E.G.O:提灯': 'assets/videos/don_lantern.mp4'
+    // }
+};
+
+/**
+ * 彩蛋检测与触发函数
+ * 在人格抽取完成后调用，检查当前选中的罪人和人格是否匹配彩蛋配置
+ * 采用配置驱动模式，自动匹配并播放对应视频
+ */
+function checkEasterEgg() {
+    if (!currentSelectedSinner || !currentSelectedPersona) return;
+
+    const sinnerId = currentSelectedSinner.id;
+    const personaName = typeof currentSelectedPersona === 'object'
+        ? currentSelectedPersona.name
+        : currentSelectedPersona;
+
+    // 检查彩蛋配置表中是否有对应的罪人配置
+    if (!easterEggConfig[sinnerId]) return;
+
+    // 检查该罪人的人格配置中是否有当前选中的人格
+    const videoPath = easterEggConfig[sinnerId][personaName];
+    if (!videoPath) return;
+
+    // 触发彩蛋：播放指定视频
+    triggerUniversalEasterEgg(videoPath);
+}
+
+/**
+ * 通用彩蛋视频播放器
+ * 采用单例模式，所有彩蛋共用一个播放框架，仅动态切换视频源
+ * @param {string} videoPath - 视频文件路径（相对于项目根目录）
+ */
+function triggerUniversalEasterEgg(videoPath) {
+    const modalId = 'universal-easter-egg-modal';
+    const videoId = 'universal-easter-egg-video';
+    const closeBtnId = 'universal-easter-egg-close-btn';
+    
+    const modal = document.getElementById(modalId);
+    const video = document.getElementById(videoId);
+    const closeBtn = document.getElementById(closeBtnId);
+    
+    if (!modal || !video || !closeBtn) {
+        console.warn('通用彩蛋播放器元素未找到，请检查 index.html 结构');
+        return;
+    }
+
+    /**
+     * 关闭模态框：渐缓淡出动画 + 清理状态
+     */
+    const hideModal = () => {
+        // 移除淡入类，触发淡出动画
+        modal.classList.remove('fade-in');
+        
+        // 等待淡出动画完成后隐藏并清理
+        setTimeout(() => {
+            modal.classList.remove('active');
+            video.pause();
+            video.currentTime = 0;
+            // 清空视频源，释放资源
+            video.src = '';
+        }, 400); // 与 CSS transition 时间一致
+    };
+
+    /**
+     * 绑定关闭按钮事件（每次打开时重新绑定，避免重复绑定）
+     */
+    closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        hideModal();
+    };
+
+    /**
+     * 点击视频实现暂停/播放切换
+     */
+    video.onclick = (e) => {
+        e.stopPropagation();
+        if (video.paused) {
+            video.play().catch(() => {
+                // 忽略播放失败（可能是用户权限问题）
+            });
+        } else {
+            video.pause();
+        }
+    };
+
+    /**
+     * 点击遮罩空白区域关闭（不包括视频和按钮区域）
+     */
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            hideModal();
+        }
+    };
+
+    /**
+     * 显示模态框并播放视频：渐缓淡入动画
+     */
+    // 1. 动态设置视频源
+    video.src = videoPath;
+    video.load(); // 重新加载视频
+    
+    // 2. 显示模态框（初始透明）
+    modal.classList.add('active');
+    
+    // 3. 触发淡入动画（使用 requestAnimationFrame 确保 CSS transition 生效）
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            modal.classList.add('fade-in');
+        });
+    });
+    
+    // 4. 尝试自动播放视频（某些浏览器可能阻止自动播放）
+    setTimeout(() => {
+        video.currentTime = 0;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.catch((error) => {
+                console.info('彩蛋视频自动播放被浏览器阻止，用户可点击视频手动播放');
+            });
+        }
+    }, 100); // 稍微延迟，等待视频加载
 }
 
 export {

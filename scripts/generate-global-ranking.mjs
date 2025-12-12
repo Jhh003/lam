@@ -22,7 +22,12 @@ const REPO_NAME = process.env.GITHUB_REPOSITORY?.split('/')[1] || 'lam';
 // API 端点
 const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues`;
 
-// 罪人名称到ID的映射
+// 标签名称常量
+const LABEL_FLOOR_RECORD = '层数记录';
+const LABEL_REVIEWED = '已审核';
+const LABEL_PROCESSED = '已处理';
+
+// 罪人名称到ID的映射（与 data/characters.js 中的数据保持一致）
 const SINNER_NAME_TO_ID = {
   '李箱 (Yi Sang)': 1,
   '浮士德 (Faust)': 2,
@@ -43,7 +48,7 @@ const SINNER_NAME_TO_ID = {
  * 只获取带有"已审核"标签的 Issue，确保只处理管理员审核通过的记录
  */
 async function fetchIssues() {
-  const response = await fetch(`${ISSUES_API}?labels=已审核&state=all`, {
+  const response = await fetch(`${ISSUES_API}?labels=${encodeURIComponent(LABEL_REVIEWED)}&state=all`, {
     headers: {
       'Authorization': `token ${GITHUB_TOKEN}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -66,7 +71,7 @@ function parseIssueBody(body, issueLabels) {
   const record = {};
   
   // 检查是否是仅层数记录（通过标签判断）
-  const isFloorOnlyRecord = issueLabels && issueLabels.some(label => label.name === '层数记录');
+  const isFloorOnlyRecord = issueLabels && issueLabels.some(label => label.name === LABEL_FLOOR_RECORD);
   record.isFloorOnly = isFloorOnlyRecord;
 
   // 解析表单数据（GitHub Issue 表单格式）
@@ -189,13 +194,13 @@ async function markIssueAsProcessed(issueNumber) {
       'Accept': 'application/vnd.github.v3+json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ labels: ['已处理'] })
+    body: JSON.stringify({ labels: [LABEL_PROCESSED] })
   });
 
   // 移除"已审核"标签（如果存在），实现近实时更新后的标签清理
   // 注意：如果标签不存在，API 会返回 404，这是预期行为，不需要处理
   try {
-    await fetch(`${ISSUES_API}/${issueNumber}/labels/${encodeURIComponent('已审核')}`, {
+    await fetch(`${ISSUES_API}/${issueNumber}/labels/${encodeURIComponent(LABEL_REVIEWED)}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `token ${GITHUB_TOKEN}`,
@@ -276,7 +281,7 @@ async function main() {
 
     for (const issue of issues) {
       // 跳过已处理的 Issue
-      if (issue.labels.some(label => label.name === '已处理')) {
+      if (issue.labels.some(label => label.name === LABEL_PROCESSED)) {
         continue;
       }
 

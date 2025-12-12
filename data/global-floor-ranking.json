@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "generatedAt": "2025-12-12T12:00:00Z",
-  "lastUpdate": "2025-12-12T17:53:56.522Z",
+  "lastUpdate": "2025-12-12T18:20:38.911Z",
   "sinners": {
     "1": {
       "id": 1,
@@ -41,7 +41,18 @@
     "8": {
       "id": 8,
       "name": "以实玛利 (Ishmael)",
-      "personas": {}
+      "personas": {
+        "六协会南部4科(以实玛利)": [
+          {
+            "floorLevel": 15,
+            "runDate": "2025-12-13",
+            "comment": "",
+            "usedEgo": false,
+            "submittedAt": "2025-12-12T18:19:50Z",
+            "issueNumber": 12
+          }
+        ]
+      }
     },
     "9": {
       "id": 9,

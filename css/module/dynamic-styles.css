@@ -181,7 +181,7 @@
     margin: 10px 5px;
 }
 
-/* 全选/全不选/反选按钮 */
+/* 全选/全不选/反选按钮 - 稍小一点的按钮用于筛选控制 */
 #select-all-btn,
 #deselect-all-btn,
 #invert-selection-btn {
@@ -196,14 +196,15 @@
     margin: 10px 5px;
 }
 
-/* 应用筛选主按钮 - 继承control-btn的基础样式 */
+/* 应用筛选主按钮 - 金色高亮样式，需与control-btn类一起使用 */
 .primary-btn {
-    background: linear-gradient(145deg, #d4af37, #b8860b);
-    color: #1a1a2e;
+    background: linear-gradient(145deg, #d4af37, #b8860b) !important;
+    color: #1a1a2e !important;
+    text-shadow: none;
 }
 
 .primary-btn:hover {
-    background: linear-gradient(145deg, #e6c350, #d4af37);
+    background: linear-gradient(145deg, #e6c350, #d4af37) !important;
     transform: translateY(-2px);
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3), inset -2px -2px 5px rgba(255, 255, 255, 0.1), 3px 3px 10px rgba(0, 0, 0, 0.4);
 }

@@ -22,6 +22,22 @@ const REPO_NAME = process.env.GITHUB_REPOSITORY?.split('/')[1] || 'lam';
 // API 端点
 const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues`;
 
+// 罪人名称到ID的映射
+const SINNER_NAME_TO_ID = {
+  '李箱 (Yi Sang)': 1,
+  '浮士德 (Faust)': 2,
+  '堂吉诃德 (Don Quixote)': 3,
+  '良秀 (Ryoshu)': 4,
+  '默尔索 (Meursault)': 5,
+  '鸿璐 (Hong Lu)': 6,
+  '希斯克利夫 (Heathcliff)': 7,
+  '以实玛利 (Ishmael)': 8,
+  '罗佳 (Rodion)': 9,
+  '辛克莱 (Sinclair)': 10,
+  '格里高尔 (Gregor)': 11,
+  '奥提斯 (Outis)': 12
+};
+
 /**
  * 从 GitHub Issues 获取已审核的通关记录
  * 只获取带有"已审核"标签的 Issue，确保只处理管理员审核通过的记录
@@ -43,10 +59,15 @@ async function fetchIssues() {
 
 /**
  * 解析 Issue 内容
+ * 支持两种格式：时间记录（submit-clear-run.yml）和层数记录（submit-floor-only.yml）
  */
-function parseIssueBody(body) {
+function parseIssueBody(body, issueLabels) {
   const lines = body.split('\n');
   const record = {};
+  
+  // 检查是否是仅层数记录（通过标签判断）
+  const isFloorOnlyRecord = issueLabels && issueLabels.some(label => label.name === '层数记录');
+  record.isFloorOnly = isFloorOnlyRecord;
 
   // 解析表单数据（GitHub Issue 表单格式）
   let currentKey = null;
@@ -61,6 +82,10 @@ function parseIssueBody(body) {
           break;
         case '罪人名称':
           record.sinnerName = value;
+          // 如果没有 sinnerId，则从名称映射获取
+          if (!record.sinnerId && SINNER_NAME_TO_ID[value]) {
+            record.sinnerId = SINNER_NAME_TO_ID[value];
+          }
           break;
         case '人格名称':
           record.personaName = value;
@@ -82,12 +107,17 @@ function parseIssueBody(body) {
           // 检查是否勾选了成功单通
           record.soloClear = value.includes('是，我成功单通了镜像地下城');
           break;
-        case '单通层数（仅当选中“成功单通”时填写）':
-          // 解析层数（如“第5层” -> 5）
+        case '单通层数（仅当选中"成功单通"时填写）':
+        case '单通层数':
+          // 解析层数（如"第5层" -> 5）
           if (value && value !== '未选择') {
             const match = value.match(/第(\d+)层/);
             if (match) {
               record.floorLevel = parseInt(match[1], 10);
+              // 层数记录默认设置 soloClear 为 true
+              if (isFloorOnlyRecord) {
+                record.soloClear = true;
+              }
             }
           }
           break;
@@ -99,9 +129,9 @@ function parseIssueBody(body) {
 }
 
 /**
- * 验证记录数据
+ * 验证时间记录数据
  */
-function validateRecord(record) {
+function validateTimeRecord(record) {
   if (!record.sinnerId || record.sinnerId < 1 || record.sinnerId > 12) {
     return false;
   }
@@ -116,6 +146,36 @@ function validateRecord(record) {
   }
   return true;
 }
+
+/**
+ * 验证层数记录数据（仅层数记录，不需要通关时间）
+ */
+function validateFloorRecord(record) {
+  if (!record.sinnerId || record.sinnerId < 1 || record.sinnerId > 12) {
+    return false;
+  }
+  if (!record.sinnerName || !record.personaName) {
+    return false;
+  }
+  if (!record.floorLevel || ![5, 10, 15].includes(record.floorLevel)) {
+    return false;
+  }
+  if (!record.runDate) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * 验证记录数据（根据记录类型选择验证方法）
+ */
+function validateRecord(record) {
+  if (record.isFloorOnly) {
+    return validateFloorRecord(record);
+  }
+  return validateTimeRecord(record);
+}
+
 
 /**
  * 标记 Issue 为已处理
@@ -220,7 +280,7 @@ async function main() {
         continue;
       }
 
-      const record = parseIssueBody(issue.body);
+      const record = parseIssueBody(issue.body, issue.labels);
       
       if (!validateRecord(record)) {
         console.log(`⚠️  Issue #${issue.number} 数据无效，跳过`);
@@ -252,26 +312,28 @@ async function main() {
         floorRankingData.sinners[sinnerId].name = record.sinnerName;
       }
 
-      // 添加人格记录（时间排行榜）
-      if (!rankingData.sinners[sinnerId].personas[record.personaName]) {
-        rankingData.sinners[sinnerId].personas[record.personaName] = [];
-      }
+      // 添加人格记录（时间排行榜）- 仅非层数记录才添加到时间排行榜
+      if (!record.isFloorOnly) {
+        if (!rankingData.sinners[sinnerId].personas[record.personaName]) {
+          rankingData.sinners[sinnerId].personas[record.personaName] = [];
+        }
 
-      // 检查是否已存在相同的记录（基于时间和日期去重）
-      const exists = rankingData.sinners[sinnerId].personas[record.personaName].some(
-        r => r.clearTime === record.clearTime && r.runDate === record.runDate
-      );
+        // 检查是否已存在相同的记录（基于时间和日期去重）
+        const exists = rankingData.sinners[sinnerId].personas[record.personaName].some(
+          r => r.clearTime === record.clearTime && r.runDate === record.runDate
+        );
 
-      if (!exists) {
-        rankingData.sinners[sinnerId].personas[record.personaName].push({
-          clearTime: record.clearTime,
-          runDate: record.runDate,
-          comment: record.comment || '',
-          usedEgo: record.usedEgo || false,
-          submittedAt: issue.created_at,
-          issueNumber: issue.number
-        });
-        validCount++;
+        if (!exists) {
+          rankingData.sinners[sinnerId].personas[record.personaName].push({
+            clearTime: record.clearTime,
+            runDate: record.runDate,
+            comment: record.comment || '',
+            usedEgo: record.usedEgo || false,
+            submittedAt: issue.created_at,
+            issueNumber: issue.number
+          });
+          validCount++;
+        }
       }
       
       // 添加人格记录（层数排行榜）
@@ -294,6 +356,10 @@ async function main() {
             submittedAt: issue.created_at,
             issueNumber: issue.number
           });
+          // 如果是层数记录，也算为有效记录
+          if (record.isFloorOnly) {
+            validCount++;
+          }
         }
       }
 

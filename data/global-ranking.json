@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2025-12-12T12:00:00Z",
+  "lastUpdate": "2025-12-12T12:00:00Z",
+  "sinners": {
+    "1": {
+      "id": 1,
+      "name": "李箱 (Yi Sang)",
+      "personas": {}
+    },
+    "2": {
+      "id": 2,
+      "name": "浮士德 (Faust)",
+      "personas": {}
+    },
+    "3": {
+      "id": 3,
+      "name": "堂吉诃德 (Don Quixote)",
+      "personas": {}
+    },
+    "4": {
+      "id": 4,
+      "name": "良秀 (Ryoshu)",
+      "personas": {}
+    },
+    "5": {
+      "id": 5,
+      "name": "默尔索 (Meursault)",
+      "personas": {}
+    },
+    "6": {
+      "id": 6,
+      "name": "鸿璐 (Hong Lu)",
+      "personas": {}
+    },
+    "7": {
+      "id": 7,
+      "name": "希斯克利夫 (Heathcliff)",
+      "personas": {}
+    },
+    "8": {
+      "id": 8,
+      "name": "以实玛利 (Ishmael)",
+      "personas": {}
+    },
+    "9": {
+      "id": 9,
+      "name": "罗佳 (Rodion)",
+      "personas": {}
+    },
+    "10": {
+      "id": 10,
+      "name": "辛克莱 (Sinclair)",
+      "personas": {}
+    },
+    "11": {
+      "id": 11,
+      "name": "奥蒂斯 (Outis)",
+      "personas": {}
+    },
+    "12": {
+      "id": 12,
+      "name": "格里高尔 (Gregor)",
+      "personas": {}
+    }
+  }
+}

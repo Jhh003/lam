@@ -1,0 +1,113 @@
+name: 提交通关记录
+description: 提交您的单通时间到全球联网排行榜
+title: "[通关记录] "
+labels: ["通关记录", "待处理"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📊 提交通关记录到全球联网排行榜
+        
+        感谢您的参与！请填写以下信息以提交您的通关记录。
+        
+        **注意事项：**
+        - 只有通关时间 ≥ 2小时（7200秒）的记录才会被采纳
+        - 请确保选择正确的罪人和人格
+        - 系统会在每天定时更新排行榜数据
+
+  - type: input
+    id: sinner-id
+    attributes:
+      label: 罪人ID
+      description: 选择您使用的罪人（1-12）
+      placeholder: "例如：9"
+    validations:
+      required: true
+
+  - type: input
+    id: sinner-name
+    attributes:
+      label: 罪人名称
+      description: 罪人的中文名称
+      placeholder: "例如：罗佳 (Rodion)"
+    validations:
+      required: true
+
+  - type: input
+    id: persona-name
+    attributes:
+      label: 人格名称
+      description: 您使用的人格完整名称
+      placeholder: "例如：脑叶公司E.G.O:泪锋之剑"
+    validations:
+      required: true
+
+  - type: input
+    id: clear-time
+    attributes:
+      label: 通关时间（秒）
+      description: 通关所用的总时间（以秒为单位）
+      placeholder: "例如：3765"
+    validations:
+      required: true
+
+  - type: input
+    id: run-date
+    attributes:
+      label: 通关日期
+      description: 完成通关的日期（YYYY-MM-DD格式）
+      placeholder: "例如：2025-12-12"
+    validations:
+      required: true
+
+  - type: textarea
+    id: comment
+    attributes:
+      label: 备注（可选）
+      description: 任何额外的说明或备注
+      placeholder: "例如：首次通关、使用某种特殊策略等"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: used-ego
+    attributes:
+      label: 是否使用了 E.G.O
+      description: 请选择在通关过程中是否使用了 E.G.O 装备
+      options:
+        - label: 是，我在通关过程中使用了 E.G.O
+          required: false
+
+  - type: checkboxes
+    id: solo-clear
+    attributes:
+      label: 是否成功单通
+      description: 请选择是否成功单通了镜像地下城
+      options:
+        - label: 是，我成功单通了镜像地下城
+          required: false
+
+  - type: dropdown
+    id: floor-level
+    attributes:
+      label: 单通层数（仅当选中“成功单通”时填写）
+      description: 请选择您成功单通的最高层数
+      options:
+        - 未选择
+        - 第5层
+        - 第10层
+        - 第15层
+      default: 0
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 确认事项
+      description: 请确认您已阅读并同意以下条款
+      options:
+        - label: 我确认提交的数据真实有效
+          required: true
+        - label: 我了解虚假数据将被删除
+          required: true

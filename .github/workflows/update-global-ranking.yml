@@ -1,0 +1,53 @@
+name: Update Global Ranking
+
+on:
+  # 每天凌晨4点（北京时间中午12点）自动运行
+  schedule:
+    - cron: '0 4 * * *'
+  
+  # 手动触发
+  workflow_dispatch:
+  
+  # 当有新的 Issue 被打上"通关记录"标签时触发
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  update-ranking:
+    runs-on: ubuntu-latest
+    
+    # 只在 Issue 带有"通关记录"标签时运行
+    if: |
+      github.event_name == 'schedule' || 
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, '通关记录'))
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Run aggregation script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/generate-global-ranking.mjs
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/global-ranking.json
+          if git diff --staged --quiet; then
+            echo "没有变更需要提交"
+          else
+            git commit -m "chore: 更新全球排行榜数据 [skip ci]"
+            git push
+            echo "✅ 排行榜数据已更新并推送"
+          fi

@@ -14,7 +14,7 @@
     <div class="container">
         <header>
             <h1>边狱公司 - 今天蛋筒什么？</h1>
-            <p class="description">版本：1.2.2</p>
+            <p class="description">版本：1.4.0</p>
             <div id="countdown" class="countdown-display"></div>
         </header>
 
@@ -27,6 +27,9 @@
             <div class="page-content">
                 <div class="selector-container">
                     <div class="timer-toggle-wrapper">
+                        <button id="ranking-page-btn" class="control-btn">
+                            <i class="fas fa-trophy"></i> 排行榜
+                        </button>
                         <button id="timer-toggle-btn" class="control-btn primary-btn">
                             <i class="fas fa-clock"></i> 单通时间计时
                         </button>
@@ -168,9 +171,41 @@
                             <label for="player-note">备注：</label>
                             <input type="text" id="player-note" name="playerNote" placeholder="可选，如：使用角色、难度等" maxlength="20">
                         </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="used-ego" name="usedEgo" style="margin-right: 8px;">
+                                是否使用了 E.G.O
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="solo-clear-checkbox" name="soloClear" style="margin-right: 8px;">
+                                是否成功单通？
+                            </label>
+                        </div>
+                        <div class="form-group" id="floor-selection" style="display: none; margin-left: 30px;">
+                            <label style="display: block; margin-bottom: 8px; color: #d4af37;">选择单通层数：</label>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="floorLevel" value="5" style="margin-right: 5px;">
+                                    第5层
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="floorLevel" value="10" style="margin-right: 5px;">
+                                    第10层
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="floorLevel" value="15" style="margin-right: 5px;">
+                                    第15层
+                                </label>
+                            </div>
+                        </div>
                         <div class="ranking-actions">
                             <button type="submit" id="upload-ranking-btn" class="control-btn primary-btn">
-                                <i class="fas fa-save"></i> 保存到排行榜
+                                <i class="fas fa-save"></i> 保存到本地
+                            </button>
+                            <button type="button" id="upload-global-btn" class="control-btn">
+                                <i class="fas fa-cloud-upload-alt"></i> 上传全球榜
                             </button>
                             <button type="button" id="view-ranking-btn" class="control-btn">
                                 <i class="fas fa-trophy"></i> 查看排行榜

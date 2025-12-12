@@ -132,6 +132,14 @@
         const pauseBtn = document.getElementById('timer-pause-btn');
         const resetBtn = document.getElementById('timer-reset-btn');
         
+        // 排行榜按钮
+        const rankingPageBtn = document.getElementById('ranking-page-btn');
+        const uploadGlobalBtn = document.getElementById('upload-global-btn');
+        
+        // 成功单通复选框和层数选择
+        const soloClearCheckbox = document.getElementById('solo-clear-checkbox');
+        const floorSelection = document.getElementById('floor-selection');
+        
         // 排行榜功能元素
 const rankingForm = document.getElementById('ranking-form');
 const playerNoteInput = document.getElementById('player-note');
@@ -220,6 +228,106 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         function viewRanking() {
             // 在新窗口中打开排行榜页面
             window.open('ranking.html', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        }
+        
+        // 上传到全球排行榜
+        async function uploadToGlobalRanking() {
+            // 1. 验证计时器是否有数据
+            if (seconds === 0) {
+                setTimeout(() => window.Modal?.alert('请先完成一次游戏计时再上传！', '提示'), 100);
+                return;
+            }
+            
+            // 2. 验证时间是否达到2小时
+            if (seconds < 7200) {
+                setTimeout(() => window.Modal?.alert('很抱歉，只有通关时间≥ 2小时（7200秒）的记录才能上传到全球排行榜。', '提示'), 100);
+                return;
+            }
+            
+            // 3. 自动检测当前选中的罪人和人格
+            const selectedSinner = window.currentSelectedSinner;
+            const selectedPersona = window.currentSelectedPersona;
+            
+            // 4. 如果未选择罪人或人格，提示用户
+            if (!selectedSinner || !selectedPersona) {
+                const proceed = await window.Modal?.confirm(
+                    '检测到您当前未选择罪人或人格。\n\n' +
+                    '您需要先在主界面完成罪人和人格的随机抽取，' +
+                    '然后再进行上传。\n\n' +
+                    '是否立即转到主界面进行抽取？',
+                    '需要先抽取'
+                );
+                
+                if (proceed) {
+                    hideTimerModal();
+                }
+                return;
+            }
+            
+            // 5. 生成 GitHub Issue 表单数据
+            const comment = playerNoteInput ? playerNoteInput.value.trim() : '';
+            const usedEgoCheckbox = document.getElementById('used-ego');
+            const usedEgo = usedEgoCheckbox ? usedEgoCheckbox.checked : false;
+            
+            // 获取成功单通层数
+            const soloClear = soloClearCheckbox ? soloClearCheckbox.checked : false;
+            let floorLevel = null;
+            if (soloClear) {
+                const selectedFloor = document.querySelector('input[name="floorLevel"]:checked');
+                floorLevel = selectedFloor ? parseInt(selectedFloor.value, 10) : null;
+            }
+            
+            const runDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            // 6. 生成 Issue URL（预填表单）
+            const repoOwner = 'Jhh003'; // 此处应替换为实际的 GitHub 用户名
+            const repoName = 'lam'; // 此处应替换为实际的仓库名
+            
+            const issueBody = `### 罪人 ID\n${selectedSinner.id}\n\n` +
+                `### 罪人名称\n${selectedSinner.name}\n\n` +
+                `### 人格名称\n${selectedPersona.name}\n\n` +
+                `### 通关时间（秒）\n${seconds}\n\n` +
+                `### 通关日期\n${runDate}\n\n` +
+                `### 备注（可选）\n${comment || '无'}`;
+            
+            const issueUrl = `https://github.com/${repoOwner}/${repoName}/issues/new?` +
+                `labels=通关记录&` +
+                `template=submit-clear-run.yml&` +
+                `title=[通关记录] ${selectedSinner.name} - ${selectedPersona.name} - ${formatTime(seconds)}`;
+            
+            // 7. 显示确认弹窗
+            let info = `您即将上传以下记录到全球排行榜：\n\n` +
+                `罪人：${selectedSinner.name}\n` +
+                `人格：${selectedPersona.name}\n` +
+                `时间：${formatTime(seconds)}\n` +
+                `备注：${comment || '无'}\n` +
+                `使用 E.G.O：${usedEgo ? '是' : '否'}\n`;
+            
+            if (soloClear && floorLevel) {
+                info += `成功单通层数：第${floorLevel}层\n`;
+            }
+            
+            info += `\n点击确定后将跳转到 GitHub 页面提交记录。\n` +
+                `（您需要有 GitHub 账号）`;
+            
+            const confirmed = await window.Modal?.confirm(info, '上传确认');
+            
+            if (confirmed) {
+                // 8. 在新窗口打开 GitHub Issue 页面
+                window.open(issueUrl, '_blank');
+                
+                // 9. 同时保存到本地
+                saveToLocalRanking();
+                
+                setTimeout(() => {
+                    window.Modal?.alert(
+                        '已在新窗口打开 GitHub 提交页面。\n\n' +
+                        '请在那里填写表单并提交 Issue。\n\n' +
+                        '管理员审核通过后，您的记录将出现在全球排行榜中。',
+                        '提示'
+                    );
+                }, 500);
+            }
         }
         
         // 格式化时间（秒 -> HH:MM:SS）
@@ -315,6 +423,48 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         
         if (viewRankingBtn) {
             viewRankingBtn.addEventListener('click', viewRanking);
+        }
+        
+        // 上传全球排行榜按钮
+        if (uploadGlobalBtn) {
+            uploadGlobalBtn.addEventListener('click', uploadToGlobalRanking);
+        }
+        
+        // 主页面排行榜按钮点击事件
+        if (rankingPageBtn) {
+            rankingPageBtn.addEventListener('click', () => {
+                window.location.href = 'ranking.html';
+            });
+        }
+        
+        // 成功单通复选框事件监听
+        if (soloClearCheckbox && floorSelection) {
+            soloClearCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    floorSelection.style.display = 'block';
+                    // 首次勾选时显示帮助信息
+                    const hasSeenGuide = localStorage.getItem('hasSeenFloorGuide');
+                    if (!hasSeenGuide) {
+                        setTimeout(() => {
+                            window.Modal?.alert(
+                                '🎯 成功单通层数上传指南\n\n' +
+                                '1、选中“是否成功单通？”后，需要选择您成功单通的最高层数。\n\n' +
+                                '2、目前支持的层数有：第5层、第10层、第15层。\n\n' +
+                                '3、层数排行榜按层数高低排序（15层 > 10层 > 5层）。\n\n' +
+                                '4、相同层数的记录按提交时间排序，先提交的排在前面。\n\n' +
+                                '5、您可以在排行榜页面的“单通层数（联网）”标签页查看所有层数记录。',
+                                '使用说明'
+                            );
+                            localStorage.setItem('hasSeenFloorGuide', 'true');
+                        }, 100);
+                    }
+                } else {
+                    floorSelection.style.display = 'none';
+                    // 清除所有选中的层数
+                    const floorRadios = document.querySelectorAll('input[name="floorLevel"]');
+                    floorRadios.forEach(radio => radio.checked = false);
+                }
+            });
         }
         
         // 初始化显示

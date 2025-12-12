@@ -27,8 +27,11 @@ header {
 
 /* 计时器按钮容器 */
 .timer-toggle-wrapper {
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 /* 二级选择器的上间距 */

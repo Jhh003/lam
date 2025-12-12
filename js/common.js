@@ -135,6 +135,8 @@
         // 排行榜按钮
         const rankingPageBtn = document.getElementById('ranking-page-btn');
         const uploadGlobalBtn = document.getElementById('upload-global-btn');
+        console.log('ranking-page-btn:', rankingPageBtn);
+        console.log('upload-global-btn:', uploadGlobalBtn);
         
         // 上传模态窗口元素
         const uploadModal = document.getElementById('upload-modal');
@@ -145,6 +147,10 @@
         const fullUploadFields = document.getElementById('full-upload-fields');
         const floorOnlyUploadFields = document.getElementById('floor-only-upload-fields');
         const fullTimeDisplay = document.getElementById('full-time-display');
+        console.log('upload-modal:', uploadModal);
+        console.log('upload-global-form:', uploadGlobalForm);
+        console.log('full-upload-fields:', fullUploadFields);
+        console.log('floor-only-upload-fields:', floorOnlyUploadFields);
         
         // 排行榜功能元素
 const rankingForm = document.getElementById('ranking-form');
@@ -199,7 +205,7 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                     timestamp: new Date().toISOString(),
                     sinner: selectedSinner ? {
                         name: selectedSinner.name,
-                        avatar: selectedSinner.avatar
+                        avatar: selectedPersona ? selectedPersona.avatar : selectedSinner.avatar  // 使用人格头像
                     } : null,
                     persona: selectedPersona ? {
                         name: selectedPersona.name,
@@ -238,11 +244,17 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         
         // 上传到全球排行榜 - 打开上传模态窗口
         function uploadToGlobalRanking() {
+            console.log('上传全球排行榜按钮被点击');
+            
             // 1. 验证罗人和人格是否选择
             const selectedSinner = window.currentSelectedSinner;
             const selectedPersona = window.currentSelectedPersona;
             
+            console.log('选中的罪人:', selectedSinner);
+            console.log('选中的人格:', selectedPersona);
+            
             if (!selectedSinner || !selectedPersona) {
+                console.log('未选择罪人或人格');
                 setTimeout(() => {
                     window.Modal?.alert(
                         '检测到您当前未选择罪人或人格。\n\n' +
@@ -255,27 +267,44 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
             }
             
             // 2. 显示上传模态窗口
+            console.log('调用 showUploadModal');
             showUploadModal();
         }
         
         // 显示上传模态窗口
         function showUploadModal() {
+            // 安全检查所有必需元素
+            if (!uploadModal || !uploadGlobalForm || !fullUploadFields || !floorOnlyUploadFields) {
+                console.error('上传模态窗口元素未找到');
+                setTimeout(() => {
+                    window.Modal?.alert('上传功能初始化失败，请刷新页面重试。', '错误');
+                }, 100);
+                return;
+            }
+            
             // 填充时间显示
             if (fullTimeDisplay) {
                 fullTimeDisplay.value = formatTime(seconds);
             }
             
             // 重置表单
-            uploadGlobalForm.reset();
+            if (uploadGlobalForm) {
+                uploadGlobalForm.reset();
+            }
             
             // 默认选中完整记录上传
-            document.querySelector('input[name="uploadType"][value="full"]').checked = true;
+            const fullRadio = document.querySelector('input[name="uploadType"][value="full"]');
+            if (fullRadio) {
+                fullRadio.checked = true;
+            }
             fullUploadFields.style.display = 'block';
             floorOnlyUploadFields.style.display = 'none';
             
             // 显示模态窗口
             uploadModal.classList.add('active');
             document.body.style.overflow = 'hidden';
+            
+            console.log('上传模态窗口已打开');
         }
         
         // 隐藏上传模态窗口
@@ -534,7 +563,11 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         
         // 上传全球排行榜按钮
         if (uploadGlobalBtn) {
+            console.log('找到上传全球排行榜按钮，绑定事件...');
             uploadGlobalBtn.addEventListener('click', uploadToGlobalRanking);
+            console.log('上传全球排行榜按钮事件已绑定');
+        } else {
+            console.error('未找到 upload-global-btn 按钮元素！');
         }
         
         // 主页面排行榜按钮点击事件

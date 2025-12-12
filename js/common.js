@@ -22,6 +22,16 @@
         }
         return window.Modal;
     }
+    
+    // URL 验证辅助函数
+    function isValidUrl(string) {
+        try {
+            const url = new URL(string);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch (_) {
+            return false;
+        }
+    }
     // 获取当前时间的函数，优先使用API获取服务器时间，失败则回退到本地时间
     function getCurrentTime() {
         // 尝试从API获取服务器时间
@@ -409,8 +419,15 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
             
             // 获取表单数据
             const usedEgo = document.getElementById('full-used-ego')?.checked || false;
+            const screenshot = document.getElementById('full-screenshot')?.value.trim() || '';
             const comment = document.getElementById('full-comment')?.value.trim() || '';
             const runDate = new Date().toISOString().split('T')[0];
+            
+            // 验证图片链接（可选但推荐）
+            if (screenshot && !isValidUrl(screenshot)) {
+                await Modal.alert('请输入有效的图片链接！', '提示');
+                return;
+            }
             
             // 生成确认信息
             const info = `您即将上传以下完整记录到全球排行榜：\n\n` +
@@ -419,6 +436,7 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 `时间：${formatTime(seconds)}\n` +
                 `层数：第${floorLevel}层\n` +
                 `E.G.O：${usedEgo ? '是' : '否'}\n` +
+                `通关图片：${screenshot || '未提供'}\n` +
                 `备注：${comment || '无'}\n\n` +
                 `点击确定后将跳转到 GitHub 页面提交记录。\n` +
                 `（您需要有 GitHub 账号）`;
@@ -448,7 +466,7 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 
                 await Modal.alert(
                     '已在新窗口打开 GitHub 提交页面。\n\n' +
-                    '请在那里填写表单并提交 Issue。\n\n' +
+                    '请在那里填写表单（包括通关图片链接）并提交 Issue。\n\n' +
                     '管理员审核通过后，您的记录将出现在全球排行榜中。',
                     '提示'
                 );
@@ -476,14 +494,22 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
             }
             
             // 获取表单数据
+            const screenshot = document.getElementById('floor-only-screenshot')?.value.trim() || '';
             const comment = document.getElementById('floor-only-comment')?.value.trim() || '';
             const runDate = new Date().toISOString().split('T')[0];
+            
+            // 验证图片链接（可选但推荐）
+            if (screenshot && !isValidUrl(screenshot)) {
+                await Modal.alert('请输入有效的图片链接！', '提示');
+                return;
+            }
             
             // 生成确认信息
             const info = `您即将上传以下简化记录到全球排行榜：\n\n` +
                 `罪人：${selectedSinner.name}\n` +
                 `人格：${selectedPersona.name}\n` +
                 `层数：第${floorLevel}层\n` +
+                `通关图片：${screenshot || '未提供'}\n` +
                 `备注：${comment || '无'}\n\n` +
                 `注：此记录不包含通关时间，仅显示在层数排行榜中。\n\n` +
                 `点击确定后将跳转到 GitHub 页面提交记录。\n` +
@@ -511,7 +537,7 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 
                 await Modal.alert(
                     '已在新窗口打开 GitHub 提交页面。\n\n' +
-                    '请在那里填写表单并提交 Issue。\n\n' +
+                    '请在那里填写表单（包括通关图片链接）并提交 Issue。\n\n' +
                     '管理员审核通过后，您的记录将出现在层数排行榜中。',
                     '提示'
                 );

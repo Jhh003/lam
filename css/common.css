@@ -804,7 +804,7 @@ h1 {
 ======================================== */
 
 .upload-modal-content {
-    max-width: 650px;
+    max-width: 750px;
     max-height: 90vh;
     overflow-y: auto;
 }
@@ -921,6 +921,7 @@ h1 {
 }
 
 .upload-section input[type="text"],
+.upload-section input[type="url"],
 .upload-section textarea {
     width: 100%;
     padding: 10px;
@@ -930,6 +931,14 @@ h1 {
     color: #fff;
     font-size: 0.95rem;
     box-sizing: border-box;
+}
+
+.upload-section input[type="text"]:focus,
+.upload-section input[type="url"]:focus,
+.upload-section textarea:focus {
+    outline: none;
+    border-color: #d4af37;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
 .upload-section input[type="text"]:read-only {

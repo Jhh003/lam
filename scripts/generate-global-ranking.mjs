@@ -66,12 +66,16 @@ async function fetchIssues() {
  * 解析 Issue 内容
  * 支持两种格式：时间记录（submit-clear-run.yml）和层数记录（submit-floor-only.yml）
  */
-function parseIssueBody(body, issueLabels) {
+function parseIssueBody(body, issueLabels, issueTitle) {
   const lines = body.split('\n');
   const record = {};
   
-  // 检查是否是仅层数记录（通过标签判断）
-  const isFloorOnlyRecord = issueLabels && issueLabels.some(label => label.name === LABEL_FLOOR_RECORD);
+  // 检查是否是仅层数记录
+  // 1. 通过标签判断
+  // 2. 通过标题前缀 "[层数记录]" 判断（Issue 模板自动添加的标题前缀）
+  const hasFloorLabel = issueLabels && issueLabels.some(label => label.name === LABEL_FLOOR_RECORD);
+  const hasFloorTitlePrefix = typeof issueTitle === 'string' && issueTitle.startsWith('[层数记录]');
+  const isFloorOnlyRecord = hasFloorLabel || hasFloorTitlePrefix;
   record.isFloorOnly = isFloorOnlyRecord;
 
   // 解析表单数据（GitHub Issue 表单格式）
@@ -285,7 +289,7 @@ async function main() {
         continue;
       }
 
-      const record = parseIssueBody(issue.body, issue.labels);
+      const record = parseIssueBody(issue.body, issue.labels, issue.title);
       
       if (!validateRecord(record)) {
         console.log(`⚠️  Issue #${issue.number} 数据无效，跳过`);

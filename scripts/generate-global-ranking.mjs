@@ -16,7 +16,7 @@ import { join } from 'path';
 
 // GitHub API 配置
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const REPO_OWNER = process.env.GITHUB_REPOSITORY?.split('/')[0] || 'your-username';
+const REPO_OWNER = process.env.GITHUB_REPOSITORY?.split('/')[0] || 'jhh003';
 const REPO_NAME = process.env.GITHUB_REPOSITORY?.split('/')[1] || 'lam';
 
 // API 端点

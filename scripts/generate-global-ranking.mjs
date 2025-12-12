@@ -4,11 +4,11 @@
  * 全球排行榜数据聚合脚本
  * 
  * 功能：
- * 1. 从 GitHub Issues 读取标记为"通关记录"的记录
+ * 1. 从 GitHub Issues 读取带有"已审核"标签的记录（管理员审核通过的记录）
  * 2. 解析 Issue 内容并验证数据
  * 3. 按罪人和人格分组排序
  * 4. 生成 global-ranking.json 文件
- * 5. 为已处理的 Issue 添加标签
+ * 5. 为已处理的 Issue 添加"已处理"标签，并移除"已审核"标签
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -23,10 +23,11 @@ const REPO_NAME = process.env.GITHUB_REPOSITORY?.split('/')[1] || 'lam';
 const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues`;
 
 /**
- * 从 GitHub Issues 获取通关记录
+ * 从 GitHub Issues 获取已审核的通关记录
+ * 只获取带有"已审核"标签的 Issue，确保只处理管理员审核通过的记录
  */
 async function fetchIssues() {
-  const response = await fetch(`${ISSUES_API}?labels=通关记录&state=all`, {
+  const response = await fetch(`${ISSUES_API}?labels=已审核&state=all`, {
     headers: {
       'Authorization': `token ${GITHUB_TOKEN}`,
       'Accept': 'application/vnd.github.v3+json'
@@ -156,10 +157,10 @@ async function main() {
   console.log('🚀 开始聚合全球排行榜数据...\n');
 
   try {
-    // 1. 获取所有通关记录 Issues
-    console.log('📡 正在从 GitHub Issues 获取数据...');
+    // 1. 获取所有已审核的通关记录 Issues
+    console.log('📡 正在从 GitHub Issues 获取已审核的记录...');
     const issues = await fetchIssues();
-    console.log(`✅ 找到 ${issues.length} 条记录\n`);
+    console.log(`✅ 找到 ${issues.length} 条已审核的记录\n`);
 
     // 2. 读取现有的排行榜数据
     const dataPath = join(process.cwd(), 'data', 'global-ranking.json');

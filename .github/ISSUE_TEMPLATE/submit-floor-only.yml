@@ -1,0 +1,84 @@
+name: 提交简化记录（仅层数）
+description: 提交成功单通层数记录，不包含通关时间
+title: "[层数记录] "
+labels: ["层数记录"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📊 简化记录提交表单
+        
+        此表单用于仅提交单通层数记录，不包含通关时间信息。
+        
+        **注意事项：**
+        - 请确保选择正确的罪人和人格
+        - 该记录仅显示在"单通层数（联网）"排行榜中
+        - 系统会在每天定时更新排行榜数据
+
+  - type: input
+    id: sinner-id
+    attributes:
+      label: 罪人ID
+      description: 罪人的编号（1-12）
+      placeholder: "例如：9"
+    validations:
+      required: true
+
+  - type: input
+    id: sinner-name
+    attributes:
+      label: 罪人名称
+      description: 罪人的完整名称
+      placeholder: "例如：罗佳 (Rodion)"
+    validations:
+      required: true
+
+  - type: input
+    id: persona-name
+    attributes:
+      label: 人格名称
+      description: 人格的完整名称
+      placeholder: "例如：脑叶公司E.G.O:泪锋之剑"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: floor-level
+    attributes:
+      label: 单通层数
+      description: 您成功单通的最高层数
+      options:
+        - 第5层
+        - 第10层
+        - 第15层
+    validations:
+      required: true
+
+  - type: input
+    id: run-date
+    attributes:
+      label: 通关日期
+      description: 完成通关的日期（YYYY-MM-DD格式）
+      placeholder: "例如：2025-12-12"
+    validations:
+      required: true
+
+  - type: textarea
+    id: comment
+    attributes:
+      label: 备注（可选）
+      description: 任何额外的说明或备注
+      placeholder: "例如：策略说明、难度等"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 提交确认
+      description: 请确认以下内容
+      options:
+        - label: 我确认以上信息准确无误
+          required: true

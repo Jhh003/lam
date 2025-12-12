@@ -74,7 +74,7 @@ function parseIssueBody(body, issueLabels, issueTitle) {
   // 1. 通过标签判断
   // 2. 通过标题前缀 "[层数记录]" 判断（Issue 模板自动添加的标题前缀）
   const hasFloorLabel = issueLabels && issueLabels.some(label => label.name === LABEL_FLOOR_RECORD);
-  const hasFloorTitlePrefix = issueTitle && issueTitle.startsWith('[层数记录]');
+  const hasFloorTitlePrefix = typeof issueTitle === 'string' && issueTitle.startsWith('[层数记录]');
   const isFloorOnlyRecord = hasFloorLabel || hasFloorTitlePrefix;
   record.isFloorOnly = isFloorOnlyRecord;
 

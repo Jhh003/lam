@@ -132,13 +132,19 @@ async function markIssueAsProcessed(issueNumber) {
   });
 
   // 移除"已审核"标签（如果存在），实现近实时更新后的标签清理
-  await fetch(`${ISSUES_API}/${issueNumber}/labels/已审核`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `token ${GITHUB_TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
-  });
+  // 注意：如果标签不存在，API 会返回 404，这是预期行为，不需要处理
+  try {
+    await fetch(`${ISSUES_API}/${issueNumber}/labels/${encodeURIComponent('已审核')}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+  } catch (error) {
+    // 忽略标签移除失败的错误，因为标签可能本来就不存在
+    console.log(`  ℹ️ 移除"已审核"标签时出现异常（可忽略）: ${error.message}`);
+  }
 
   return addResponse.ok;
 }

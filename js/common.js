@@ -1,9 +1,27 @@
 // 倒计时功能实现
 (function () {
     // 导入弹窗模块
-    import('./modal.js').then(({ default: Modal }) => {
+    let modalLoadPromise = import('./modal.js').then(({ default: Modal }) => {
         window.Modal = Modal; // 全局可用
+        console.log('Modal 模块已加载');
+        return Modal;
+    }).catch(error => {
+        console.error('Modal 模块加载失败:', error);
+        return null;
     });
+    
+    // 确保 Modal 模块已加载的辅助函数
+    async function ensureModal() {
+        if (!window.Modal) {
+            console.log('等待 Modal 模块加载...');
+            await modalLoadPromise;
+        }
+        if (!window.Modal) {
+            console.error('Modal 模块加载失败！');
+            return null;
+        }
+        return window.Modal;
+    }
     // 获取当前时间的函数，优先使用API获取服务器时间，失败则回退到本地时间
     function getCurrentTime() {
         // 尝试从API获取服务器时间
@@ -243,10 +261,10 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         }
         
         // 上传到全球排行榜 - 打开上传模态窗口
-        function uploadToGlobalRanking() {
+        async function uploadToGlobalRanking() {
             console.log('上传全球排行榜按钮被点击');
             
-            // 1. 验证罗人和人格是否选择
+            // 1. 验证罪人和人格是否选择
             const selectedSinner = window.currentSelectedSinner;
             const selectedPersona = window.currentSelectedPersona;
             
@@ -255,14 +273,19 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
             
             if (!selectedSinner || !selectedPersona) {
                 console.log('未选择罪人或人格');
-                setTimeout(() => {
-                    window.Modal?.alert(
+                
+                // 确保 Modal 模块已加载
+                const Modal = await ensureModal();
+                if (Modal) {
+                    await Modal.alert(
                         '检测到您当前未选择罪人或人格。\n\n' +
                         '您需要先在主界面完成罪人和人格的随机抽取，' +
                         '然后再进行上传。',
                         '需要先抽取'
                     );
-                }, 100);
+                } else {
+                    alert('请先完成罪人和人格的随机抽取！');
+                }
                 return;
             }
             
@@ -272,13 +295,18 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         }
         
         // 显示上传模态窗口
-        function showUploadModal() {
+        async function showUploadModal() {
             // 安全检查所有必需元素
             if (!uploadModal || !uploadGlobalForm || !fullUploadFields || !floorOnlyUploadFields) {
                 console.error('上传模态窗口元素未找到');
-                setTimeout(() => {
-                    window.Modal?.alert('上传功能初始化失败，请刷新页面重试。', '错误');
-                }, 100);
+                
+                // 确保 Modal 模块已加载
+                const Modal = await ensureModal();
+                if (Modal) {
+                    await Modal.alert('上传功能初始化失败，请刷新页面重试。', '错误');
+                } else {
+                    alert('上传功能初始化失败，请刷新页面重试。');
+                }
                 return;
             }
             
@@ -328,39 +356,54 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         
         // 处理表单提交
         async function handleUploadSubmit(e) {
+            console.log('表单提交事件触发');
             e.preventDefault();
+            e.stopPropagation();
             
             const selectedSinner = window.currentSelectedSinner;
             const selectedPersona = window.currentSelectedPersona;
             const uploadType = document.querySelector('input[name="uploadType"]:checked')?.value;
+            
+            console.log('上传类型:', uploadType);
             
             if (uploadType === 'full') {
                 await submitFullRecord(selectedSinner, selectedPersona);
             } else if (uploadType === 'floor-only') {
                 await submitFloorOnlyRecord(selectedSinner, selectedPersona);
             }
+            
+            console.log('handleUploadSubmit 执行完成');
+            return false;
         }
         
         // 提交完整记录
         async function submitFullRecord(selectedSinner, selectedPersona) {
+            console.log('开始提交完整记录');
+            
+            // 确保 Modal 模块已加载
+            const Modal = await ensureModal();
+            if (!Modal) {
+                alert('弹窗模块加载失败，请刷新页面重试！');
+                return;
+            }
+            
             // 验证时间
             if (seconds < 7200) {
-                setTimeout(() => {
-                    window.Modal?.alert(
-                        '很抱歉，完整记录上传需要通关时间≥ 2小时（7200秒）。\n\n' +
-                        '您当前的时间为：' + formatTime(seconds),
-                        '提示'
-                    );
-                }, 100);
+                console.log('时间验证失败:', seconds);
+                await Modal.alert(
+                    '很抱歉，完整记录上传需要通关时间≥ 2小时（7200秒）。\n\n' +
+                    '您当前的时间为：' + formatTime(seconds),
+                    '提示'
+                );
                 return;
             }
             
             // 验证层数选择
             const floorLevel = document.querySelector('input[name="fullFloorLevel"]:checked')?.value;
+            console.log('选择的层数:', floorLevel);
             if (!floorLevel) {
-                setTimeout(() => {
-                    window.Modal?.alert('请选择单通层数！', '提示');
-                }, 100);
+                console.log('层数验证失败');
+                await Modal.alert('请选择单通层数！', '提示');
                 return;
             }
             
@@ -380,7 +423,9 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 `点击确定后将跳转到 GitHub 页面提交记录。\n` +
                 `（您需要有 GitHub 账号）`;
             
-            const confirmed = await window.Modal?.confirm(info, '上传确认');
+            console.log('准备显示确认弹窗');
+            const confirmed = await Modal.confirm(info, '上传确认');
+            console.log('确认弹窗返回值:', confirmed);
             
             if (confirmed) {
                 // 生成 GitHub Issue URL
@@ -401,25 +446,32 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 // 同时保存到本地
                 saveToLocalRanking();
                 
-                setTimeout(() => {
-                    window.Modal?.alert(
-                        '已在新窗口打开 GitHub 提交页面。\n\n' +
-                        '请在那里填写表单并提交 Issue。\n\n' +
-                        '管理员审核通过后，您的记录将出现在全球排行榜中。',
-                        '提示'
-                    );
-                }, 500);
+                await Modal.alert(
+                    '已在新窗口打开 GitHub 提交页面。\n\n' +
+                    '请在那里填写表单并提交 Issue。\n\n' +
+                    '管理员审核通过后，您的记录将出现在全球排行榜中。',
+                    '提示'
+                );
             }
         }
         
         // 提交简化记录（仅层数）
         async function submitFloorOnlyRecord(selectedSinner, selectedPersona) {
+            console.log('开始提交简化记录');
+            
+            // 确保 Modal 模块已加载
+            const Modal = await ensureModal();
+            if (!Modal) {
+                alert('弹窗模块加载失败，请刷新页面重试！');
+                return;
+            }
+            
             // 验证层数选择
             const floorLevel = document.querySelector('input[name="floorOnlyFloorLevel"]:checked')?.value;
+            console.log('选择的层数:', floorLevel);
             if (!floorLevel) {
-                setTimeout(() => {
-                    window.Modal?.alert('请选择单通层数！', '提示');
-                }, 100);
+                console.log('层数验证失败');
+                await Modal.alert('请选择单通层数！', '提示');
                 return;
             }
             
@@ -437,7 +489,9 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 `点击确定后将跳转到 GitHub 页面提交记录。\n` +
                 `（您需要有 GitHub 账号）`;
             
-            const confirmed = await window.Modal?.confirm(info, '上传确认');
+            console.log('准备显示确认弹窗');
+            const confirmed = await Modal.confirm(info, '上传确认');
+            console.log('确认弹窗返回值:', confirmed);
             
             if (confirmed) {
                 // 生成 GitHub Issue URL
@@ -455,14 +509,12 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
                 // 关闭模态窗口
                 hideUploadModal();
                 
-                setTimeout(() => {
-                    window.Modal?.alert(
-                        '已在新窗口打开 GitHub 提交页面。\n\n' +
-                        '请在那里填写表单并提交 Issue。\n\n' +
-                        '管理员审核通过后，您的记录将出现在层数排行榜中。',
-                        '提示'
-                    );
-                }, 500);
+                await Modal.alert(
+                    '已在新窗口打开 GitHub 提交页面。\n\n' +
+                    '请在那里填写表单并提交 Issue。\n\n' +
+                    '管理员审核通过后，您的记录将出现在层数排行榜中。',
+                    '提示'
+                );
             }
         }
         
@@ -522,8 +574,36 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
             updateTimerDisplay();
         }
         
+        // 显示排行榜使用说明弹窗
+        async function showRankingGuide() {
+            const Modal = await ensureModal();
+            if (!Modal) {
+                console.error('Modal 模块未加载');
+                return;
+            }
+            
+            const guideMessage = 
+                '📊 排行榜功能使用说明\n\n' +
+                '1️⃣ 个人排行榜\n' +
+                '   • 点击"保存到排行榜"可将本次通关记录保存到您的个人排行榜\n' +
+                '   • 点击"查看排行榜"可查看您的历史最佳记录\n' +
+                '   • 个人排行榜数据存储在浏览器本地，仅您可见\n\n' +
+                '2️⃣ 全球排行榜\n' +
+                '   • 点击"上传全球榜"可将记录提交到全球排行榜\n' +
+                '   • 完整记录上传：需通关时间≥2小时（7200秒）\n' +
+                '   • 简化记录上传：仅提交成功单通层数（第5/10/15层）\n' +
+                '   • 上传需跳转到 GitHub 提交 Issue，管理员审核后展示\n\n' +
+                '💡 提示：建议先保存到个人排行榜，再根据需要上传到全球榜！';
+            
+            await Modal.alert(guideMessage, '排行榜使用说明');
+        }
+        
         // 显示计时器弹窗
-        function showTimerModal() {
+        async function showTimerModal() {
+            // 先显示排行榜使用说明
+            await showRankingGuide();
+            
+            // 然后显示计时器弹窗
             timerModal.classList.add('active');
             document.body.style.overflow = 'hidden'; // 防止背景滚动
         }
@@ -605,7 +685,11 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         
         // 上传表单提交
         if (uploadGlobalForm) {
+            console.log('绑定表单提交事件');
             uploadGlobalForm.addEventListener('submit', handleUploadSubmit);
+            console.log('表单提交事件已绑定');
+        } else {
+            console.error('未找到 upload-global-form 表单元素！');
         }
         
         // 初始化显示

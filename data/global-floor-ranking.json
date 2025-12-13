@@ -31,18 +31,7 @@
     "6": {
       "id": 6,
       "name": "洪璐 (Hong Lu)",
-      "personas": {
-        "鸿园的君主": [
-          {
-            "floorLevel": 15,
-            "runDate": "2025-12-13",
-            "comment": "",
-            "usedEgo": false,
-            "submittedAt": "2025-12-12T18:23:12Z",
-            "issueNumber": 13
-          }
-        ]
-      }
+      "personas": {}
     },
     "7": {
       "id": 7,
@@ -52,19 +41,7 @@
     "8": {
       "id": 8,
       "name": "以实玛利 (Ishmael)",
-      "personas": {
-        "六协会南部4科(以实玛利)": [
-          {
-            "floorLevel": 15,
-            "runDate": "2025-12-13",
-            "comment": "",
-            "usedEgo": false,
-            "submittedAt": "2025-12-12T18:19:50Z",
-            "issueNumber": 12
-          }
-        ]
-      }
-    },
+      "personas": {}
     "9": {
       "id": 9,
       "name": "罗佳 (Rodion)",
@@ -73,7 +50,7 @@
           {
             "floorLevel": 15,
             "runDate": "2025-12-13",
-            "comment": "一般",
+            "comment": "测试",
             "usedEgo": false,
             "submittedAt": "2025-12-13T05:47:15Z",
             "issueNumber": 16

@@ -56,7 +56,7 @@ export const sinnerData = [
             { name: "T公司3级征收人员", avatar: "assets/images/Don_Quixote/Don_Quixote-T.webp" },
             { name: "N公司中锤", avatar: "assets/images/Don_Quixote/Don_Quixote-N.webp" },
             { name: "LCB罪人", avatar: "assets/images/Don_Quixote/Don_Quixote-LCB.jpg" },
-            { name: "Cinq协会南部5科科长", avatar: "assets/images/Don_Quixote/Don_Quixote-Cinq.webp " },
+            { name: "Cinq协会南部5科科长", avatar: "assets/images/Don_Quixote/Don_Quixote-Cinq.webp" },
             { name: "Cinq协会东部3科", avatar: "assets/images/Don_Quixote/Don_Quixote-Cinq2.webp" },
             { name: "中指幼妹", avatar: "assets/images/Don_Quixote/Don_Quixote-zhong_zhi.webp" },
             { name: "脑叶公司E.G.O:以爱与憎之名", avatar: "assets/images/Don_Quixote/Don_Quixote-zeng_wu.webp" },

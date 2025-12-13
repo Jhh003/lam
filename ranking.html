@@ -573,6 +573,8 @@
         import Modal from './js/modal.js';
         // 导入罪人数据（用于显示罪人信息）
         import { sinnerData } from './data/characters.js';
+        // 导入人格管理器（处理人格名称映射和头像查找）
+        import { PersonaManager } from './data/personaManager.js';
         
         // 全局状态存储
         let globalRankingData = null;
@@ -591,18 +593,14 @@
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
         
-        // 根据人格名称查找人格头像
+        // 根据人格名称查找人格头像（使用PersonaManager支持名称映射）
         function findPersonaAvatar(sinnerId, personaName) {
-            const sinner = sinnerData.find(s => s.id === parseInt(sinnerId));
-            if (!sinner) return null;
-            
-            const persona = sinner.personalities.find(p => p.name === personaName);
-            return persona ? persona.avatar : null;
+            return PersonaManager.findPersonaAvatar(sinnerId, personaName);
         }
         
         // 根据罪人ID获取罪人数据
         function getSinnerById(sinnerId) {
-            return sinnerData.find(s => s.id === parseInt(sinnerId));
+            return PersonaManager.getSinnerById(sinnerId);
         }
         
         // 创建罪人头像HTML

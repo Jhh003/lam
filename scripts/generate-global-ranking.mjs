@@ -130,6 +130,32 @@ function parseIssueBody(body, issueLabels, issueTitle) {
             }
           }
           break;
+        case '通关截图（可选）':
+          // 解析 GitHub 上传的图片URL
+          // 格式：![image](https://...)  或 直接的URL
+          // 仅允许 GitHub 托管的图片URL
+          if (value) {
+            const imgMatch = value.match(/!\[.*?\]\((https:\/\/[^\)]+)\)/);
+            let url = null;
+            if (imgMatch) {
+              url = imgMatch[1];
+            } else if (value.startsWith('https://')) {
+              url = value.trim();
+            }
+            // 验证 URL 是否来自可信的 GitHub 域名
+            if (url) {
+              try {
+                const parsedUrl = new URL(url);
+                const trustedDomains = ['github.com', 'githubusercontent.com', 'user-images.githubusercontent.com', 'raw.githubusercontent.com'];
+                if (trustedDomains.some(domain => parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain))) {
+                  record.screenshotUrl = url;
+                }
+              } catch (e) {
+                // 无效的 URL，忽略
+              }
+            }
+          }
+          break;
       }
     }
   }
@@ -333,14 +359,19 @@ async function main() {
         );
 
         if (!exists) {
-          rankingData.sinners[sinnerId].personas[record.personaName].push({
+          const newRecord = {
             clearTime: record.clearTime,
             runDate: record.runDate,
             comment: record.comment || '',
             usedEgo: record.usedEgo || false,
             submittedAt: issue.created_at,
             issueNumber: issue.number
-          });
+          };
+          // 如果有截图URL，添加到记录中
+          if (record.screenshotUrl) {
+            newRecord.screenshotUrl = record.screenshotUrl;
+          }
+          rankingData.sinners[sinnerId].personas[record.personaName].push(newRecord);
           validCount++;
         }
       }
@@ -357,14 +388,19 @@ async function main() {
         );
         
         if (!floorExists) {
-          floorRankingData.sinners[sinnerId].personas[record.personaName].push({
+          const newFloorRecord = {
             floorLevel: record.floorLevel,
             runDate: record.runDate,
             comment: record.comment || '',
             usedEgo: record.usedEgo || false,
             submittedAt: issue.created_at,
             issueNumber: issue.number
-          });
+          };
+          // 如果有截图URL，添加到记录中
+          if (record.screenshotUrl) {
+            newFloorRecord.screenshotUrl = record.screenshotUrl;
+          }
+          floorRankingData.sinners[sinnerId].personas[record.personaName].push(newFloorRecord);
           // 如果是层数记录，也算为有效记录
           if (record.isFloorOnly) {
             validCount++;

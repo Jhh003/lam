@@ -249,6 +249,23 @@ body:
     validations:
       required: false
 
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: 通关截图（可选）
+      description: |
+        上传通关结果截图作为证明（可选但推荐）。
+        **截图建议：**
+        - 分辨率：建议 1920x1080 或更低
+        - 文件大小：建议 500KB 以内（最大不超过 2MB）
+        - 格式：PNG 或 JPG
+        - 内容：请截取显示单通层数的结果画面
+        
+        直接将图片粘贴或拖拽到此处即可上传。
+      placeholder: "将截图粘贴或拖拽到此处..."
+    validations:
+      required: false
+
   - type: checkboxes
     id: terms
     attributes:

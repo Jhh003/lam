@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "generatedAt": "2025-12-12T12:00:00Z",
-  "lastUpdate": "2025-12-13T05:47:58.684Z",
+  "lastUpdate": "2025-12-13T06:49:38.080Z",
   "sinners": {
     "1": {
       "id": 1,
@@ -16,7 +16,19 @@
     "3": {
       "id": 3,
       "name": "唐吉诃德 (Don Quixote)",
-      "personas": {}
+      "personas": {
+        "脑叶公司E.G.O:提灯(堂吉诃德)": [
+          {
+            "floorLevel": 15,
+            "runDate": "2025-12-13",
+            "comment": "test 2",
+            "usedEgo": false,
+            "submittedAt": "2025-12-13T06:49:05Z",
+            "issueNumber": 18,
+            "screenshotUrl": "https://github.com/user-attachments/assets/29ec66cd-c6e1-4db8-af35-2c8a4139b45f"
+          }
+        ]
+      }
     },
     "4": {
       "id": 4,

@@ -1,9 +1,9 @@
 name: Update Global Ranking
 
 on:
-  # 每天凌晨4点（北京时间中午12点）自动运行
+  # 每2小时自动运行一次（北京时间：2点、4点、6点、8点、10点、12点、14点、16点、18点、20点、22点、0点）
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 */2 * * *'
   
   # 手动触发
   workflow_dispatch:

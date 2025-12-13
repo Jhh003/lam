@@ -343,6 +343,91 @@
             color: #ff6b6b;
         }
         
+        /* 最后更新时间样式 */
+        .last-update-info {
+            text-align: center;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            color: #888;
+            background: rgba(10, 10, 10, 0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .last-update-info i {
+            margin-right: 5px;
+            color: #d4af37;
+        }
+        
+        /* 截图展开按钮样式 */
+        .screenshot-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 15px;
+            color: #d4af37;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 5px;
+        }
+        
+        .screenshot-btn:hover {
+            background: rgba(212, 175, 55, 0.3);
+        }
+        
+        .screenshot-btn.active {
+            background: rgba(212, 175, 55, 0.4);
+        }
+        
+        /* 截图容器样式 */
+        .screenshot-container {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            animation: slideDown 0.3s ease;
+        }
+        
+        .screenshot-container.active {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+            }
+        }
+        
+        .screenshot-container img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .screenshot-container img:hover {
+            transform: scale(1.02);
+        }
+        
+        .screenshot-loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+        
         /* 移动端响应式样式 */
         @media (max-width: 768px) {
             .ranking-tabs {
@@ -523,6 +608,10 @@
         
         <!-- 联网排行榜 -->
         <div id="global-ranking" class="tab-content">
+            <!-- 最后更新时间 -->
+            <div id="global-last-update" class="last-update-info" style="display: none;">
+                <i class="fas fa-clock"></i> 最后更新：<span id="global-update-time">--</span>
+            </div>
             <!-- 罪人导航 -->
             <div id="global-sinner-nav" class="sinner-nav">
                 <!-- 罪人导航按钮将通过JavaScript动态添加 -->
@@ -546,6 +635,10 @@
         
         <!-- 层数排行榜 -->
         <div id="floor-ranking" class="tab-content">
+            <!-- 最后更新时间 -->
+            <div id="floor-last-update" class="last-update-info" style="display: none;">
+                <i class="fas fa-clock"></i> 最后更新：<span id="floor-update-time">--</span>
+            </div>
             <!-- 罪人导航 -->
             <div id="floor-sinner-nav" class="sinner-nav">
                 <!-- 罪人导航按钮将通过JavaScript动态添加 -->
@@ -583,6 +676,30 @@
         let globalSelectedPersona = 'all';
         let floorSelectedSinner = 'all';
         let floorSelectedPersona = 'all';
+        // 当前展开的截图记录ID（一次只展开一个）
+        let currentExpandedScreenshot = null;
+        
+        // 格式化日期时间（用于显示最后更新时间）
+        function formatDateTime(isoString) {
+            if (!isoString) return '--';
+            const date = new Date(isoString);
+            if (isNaN(date.getTime())) return '--';
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // HTML 转义函数（防止 XSS）
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
         
         // 格式化时间（秒 -> HH:MM:SS）
         function formatTime(seconds) {
@@ -785,6 +902,14 @@
                 
                 globalRankingData = await response.json();
                 
+                // 显示最后更新时间
+                const lastUpdateEl = document.getElementById('global-last-update');
+                const updateTimeEl = document.getElementById('global-update-time');
+                if (globalRankingData.lastUpdate) {
+                    updateTimeEl.textContent = formatDateTime(globalRankingData.lastUpdate);
+                    lastUpdateEl.style.display = 'block';
+                }
+                
                 // 渲染罪人导航
                 renderSinnerNav('global-sinner-nav', globalSelectedSinner, (sinnerId) => {
                     globalSelectedSinner = sinnerId;
@@ -885,6 +1010,8 @@
                     
                     // 显示该人格的所有记录（已排序）
                     records.forEach((record, index) => {
+                        const recordId = `global-${sinnerId}-${personaName}-${index}`;
+                        const hasScreenshot = record.screenshotUrl ? true : false;
                         html += `
                             <div class="ranking-item">
                                 <div class="ranking-number">${index + 1}</div>
@@ -894,16 +1021,26 @@
                                         `<div class="character-avatar-placeholder">?</div>`
                                     }
                                     <div class="character-details">
-                                        <div class="character-name">${sinner.name}</div>
-                                        <div class="personality-name">${personaName}</div>
+                                        <div class="character-name">${escapeHtml(sinner.name)}</div>
+                                        <div class="personality-name">${escapeHtml(personaName)}</div>
                                     </div>
                                 </div>
                                 <div class="ranking-info">
                                     <div class="ranking-date">${new Date(record.runDate).toLocaleDateString()}</div>
-                                    <div class="ranking-comment">${record.comment || '无备注'}</div>
+                                    <div class="ranking-comment">${escapeHtml(record.comment) || '无备注'}</div>
+                                    ${hasScreenshot ? `
+                                        <button class="screenshot-btn" data-record-id="${escapeHtml(recordId)}" data-screenshot-url="${escapeHtml(record.screenshotUrl)}" onclick="toggleScreenshot(this)">
+                                            <i class="fas fa-image"></i> 查看截图
+                                        </button>
+                                    ` : ''}
                                 </div>
                                 <div class="ranking-time">${formatTime(record.clearTime)}</div>
                             </div>
+                            ${hasScreenshot ? `
+                                <div id="screenshot-${escapeHtml(recordId)}" class="screenshot-container">
+                                    <div class="screenshot-loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>
+                                </div>
+                            ` : ''}
                         `;
                     });
                     
@@ -935,6 +1072,14 @@
                 }
                 
                 floorRankingData = await response.json();
+                
+                // 显示最后更新时间
+                const lastUpdateEl = document.getElementById('floor-last-update');
+                const updateTimeEl = document.getElementById('floor-update-time');
+                if (floorRankingData.lastUpdate) {
+                    updateTimeEl.textContent = formatDateTime(floorRankingData.lastUpdate);
+                    lastUpdateEl.style.display = 'block';
+                }
                 
                 // 渲染罪人导航
                 renderSinnerNav('floor-sinner-nav', floorSelectedSinner, (sinnerId) => {
@@ -1037,6 +1182,8 @@
                     // 显示该人格的所有记录（已排序）
                     records.forEach((record, index) => {
                         const floorText = `第${record.floorLevel}层`;
+                        const recordId = `floor-${sinnerId}-${personaName}-${index}`;
+                        const hasScreenshot = record.screenshotUrl ? true : false;
                         html += `
                             <div class="ranking-item">
                                 <div class="ranking-number">${index + 1}</div>
@@ -1046,16 +1193,26 @@
                                         `<div class="character-avatar-placeholder">?</div>`
                                     }
                                     <div class="character-details">
-                                        <div class="character-name">${sinner.name}</div>
-                                        <div class="personality-name">${personaName}</div>
+                                        <div class="character-name">${escapeHtml(sinner.name)}</div>
+                                        <div class="personality-name">${escapeHtml(personaName)}</div>
                                     </div>
                                 </div>
                                 <div class="ranking-info">
                                     <div class="ranking-date">${new Date(record.runDate).toLocaleDateString()}</div>
-                                    <div class="ranking-comment">${record.comment || '无备注'}</div>
+                                    <div class="ranking-comment">${escapeHtml(record.comment) || '无备注'}</div>
+                                    ${hasScreenshot ? `
+                                        <button class="screenshot-btn" data-record-id="${escapeHtml(recordId)}" data-screenshot-url="${escapeHtml(record.screenshotUrl)}" onclick="toggleScreenshot(this)">
+                                            <i class="fas fa-image"></i> 查看截图
+                                        </button>
+                                    ` : ''}
                                 </div>
                                 <div class="ranking-time">${floorText}</div>
                             </div>
+                            ${hasScreenshot ? `
+                                <div id="screenshot-${escapeHtml(recordId)}" class="screenshot-container">
+                                    <div class="screenshot-loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>
+                                </div>
+                            ` : ''}
                         `;
                     });
                     
@@ -1104,6 +1261,62 @@
         function goToHomePage() {
             window.location.href = 'index.html';
         }
+        
+        // 截图展开/收起函数（挂载到window以便onclick调用）
+        window.toggleScreenshot = function(button) {
+            const recordId = button.dataset.recordId;
+            const screenshotUrl = button.dataset.screenshotUrl;
+            const container = document.getElementById(`screenshot-${recordId}`);
+            
+            if (!container) return;
+            
+            // 如果当前已展开，则收起
+            if (container.classList.contains('active')) {
+                container.classList.remove('active');
+                button.classList.remove('active');
+                button.innerHTML = '<i class="fas fa-image"></i> 查看截图';
+                currentExpandedScreenshot = null;
+                return;
+            }
+            
+            // 收起之前展开的截图（一次只展开一个）
+            if (currentExpandedScreenshot && currentExpandedScreenshot !== recordId) {
+                const prevContainer = document.getElementById(`screenshot-${currentExpandedScreenshot}`);
+                const prevButton = document.querySelector(`[data-record-id="${currentExpandedScreenshot}"]`);
+                if (prevContainer) {
+                    prevContainer.classList.remove('active');
+                }
+                if (prevButton) {
+                    prevButton.classList.remove('active');
+                    prevButton.innerHTML = '<i class="fas fa-image"></i> 查看截图';
+                }
+            }
+            
+            // 展开当前截图
+            container.classList.add('active');
+            button.classList.add('active');
+            button.innerHTML = '<i class="fas fa-image"></i> 收起截图';
+            currentExpandedScreenshot = recordId;
+            
+            // 如果截图还没有加载，则加载
+            if (container.querySelector('.screenshot-loading')) {
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.src = screenshotUrl;
+                img.alt = '通关截图';
+                img.onclick = function() {
+                    // 点击图片在新窗口打开（使用 noopener,noreferrer 防止安全风险）
+                    window.open(screenshotUrl, '_blank', 'noopener,noreferrer');
+                };
+                img.onerror = function() {
+                    container.innerHTML = '<div class="screenshot-loading" style="color: #ff6b6b;"><i class="fas fa-exclamation-triangle"></i> 截图加载失败</div>';
+                };
+                img.onload = function() {
+                    container.innerHTML = '';
+                    container.appendChild(img);
+                };
+            }
+        };
         
         document.addEventListener('DOMContentLoaded', function() {
             // 默认加载本地排行榜

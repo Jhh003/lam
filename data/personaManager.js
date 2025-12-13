@@ -142,6 +142,12 @@ export class PersonaManager {
         if (!personaName) return personaName;
         
         const id = parseInt(sinnerId);
+        
+        // 验证罪人ID范围
+        if (isNaN(id) || id < 1 || id > 12) {
+            return personaName;
+        }
+        
         const mapping = PERSONA_NAME_MAPPING[id];
         
         // 如果存在映射，返回映射后的名称
@@ -175,7 +181,14 @@ export class PersonaManager {
     static findPersonaAvatar(sinnerId, personaName) {
         if (!personaName) return null;
         
-        const sinner = sinnerData.find(s => s.id === parseInt(sinnerId));
+        const id = parseInt(sinnerId);
+        
+        // 验证罪人ID范围
+        if (isNaN(id) || id < 1 || id > 12) {
+            return null;
+        }
+        
+        const sinner = sinnerData.find(s => s.id === id);
         if (!sinner || !sinner.personalities) return null;
         
         // 首先尝试直接匹配

@@ -130,7 +130,7 @@ assets/images/Ishmael/Ishmael-new.webp
 
 **命名规范：**
 - 格式：`{罪人英文名}-{标识}.webp` 或 `.jpg`
-- 示例：`Yi_Sang-W3.webp`, `Faust-LCB.jpg`
+- 示例：`Yi_Sang-W3.webp`, `Faust-LCB.jpg`, `Don_Quixote-Cinq.webp`
 
 ### 步骤 3：更新 Issue 模板
 

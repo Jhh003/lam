@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "generatedAt": "2025-12-12T12:00:00Z",
-  "lastUpdate": "2025-12-13T06:49:38.080Z",
+  "lastUpdate": "2025-12-13T07:33:57.287Z",
   "sinners": {
     "1": {
       "id": 1,
@@ -43,7 +43,19 @@
     "6": {
       "id": 6,
       "name": "洪璐 (Hong Lu)",
-      "personas": {}
+      "personas": {
+        "吊钩事务所收尾人": [
+          {
+            "floorLevel": 15,
+            "runDate": "2025-12-13",
+            "comment": "",
+            "usedEgo": false,
+            "submittedAt": "2025-12-13T07:32:58Z",
+            "issueNumber": 20,
+            "screenshotUrl": "https://github.com/user-attachments/assets/64cf08bf-edfb-4b3d-a2ed-68ca418e520b"
+          }
+        ]
+      }
     },
     "7": {
       "id": 7,

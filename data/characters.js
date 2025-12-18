@@ -191,6 +191,7 @@ export const sinnerData = [
             { name: "拉·曼却领公主", avatar: "assets/images/Rodion/Rodion-la_manque.webp" },
             { name: "黑云会若众", avatar: "assets/images/Rodion/Rodion-hei_yun.webp" },
             { name: "黑兽-巳", avatar: "assets/images/Rodion/Rodion-she.webp" }
+            { name: "R公司第四集团军驯鹿队", avatar: "assets/images/Rodion/Rodion-R.webp" }
         ]
     },
     {

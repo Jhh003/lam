@@ -93,28 +93,36 @@
     
     // 更新倒计时显示的函数
     function updateCountdownDisplay(timeRemaining) {
-        // 计算天、时、分、秒
-        const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-        
-        // 格式化时间，确保两位数
-        const formattedDays = days.toString();
-        const formattedHours = hours.toString().padStart(2, '0');
-        const formattedMinutes = minutes.toString().padStart(2, '0');
-        const formattedSeconds = seconds.toString().padStart(2, '0');
-        
         // 更新页面上的倒计时显示
         const countdownElement = document.getElementById('countdown');
         if (countdownElement) {
-            // 创建带有动画效果的倒计时文本
-            const countdownText = `距离第七赛季更新还有<br>${formattedDays}天 ${formattedHours}小时 ${formattedMinutes}分钟 ${formattedSeconds}秒`;
-            
-            // 将文本拆分为字符，并用span包裹以应用动画效果
-            const animatedText = createAnimatedText(countdownText);
-            
-            countdownElement.innerHTML = animatedText;
+            // 判断倒计时是否结束
+            if (timeRemaining <= 0) {
+                // 倒计时结束，显示到来文字
+                const countdownText = `第七赛季-蛛丝赤已经到来！`;
+                const animatedText = createAnimatedText(countdownText);
+                countdownElement.innerHTML = animatedText;
+            } else {
+                // 计算天、时、分、秒
+                const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                
+                // 格式化时间，确保两位数
+                const formattedDays = days.toString();
+                const formattedHours = hours.toString().padStart(2, '0');
+                const formattedMinutes = minutes.toString().padStart(2, '0');
+                const formattedSeconds = seconds.toString().padStart(2, '0');
+                
+                // 创建带有动画效果的倒计时文本
+                const countdownText = `距离第七赛季更新还有<br>${formattedDays}天 ${formattedHours}小时 ${formattedMinutes}分钟 ${formattedSeconds}秒`;
+                
+                // 将文本拆分为字符，并用span包裹以应用动画效果
+                const animatedText = createAnimatedText(countdownText);
+                
+                countdownElement.innerHTML = animatedText;
+            }
         }
     }
     

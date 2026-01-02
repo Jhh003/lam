@@ -85,12 +85,14 @@
         return result;
     }
     
-    // 直接显示赛季到来文字
-    const countdownElement = document.getElementById('countdown');
-    if (countdownElement) {
-        const countdownText = `第七赛季-蛛丝赤已经到来！`;
-        const animatedText = createAnimatedText(countdownText);
-        countdownElement.innerHTML = animatedText;
+    // 初始化倒计时显示
+    function initCountdown() {
+        const countdownElement = document.getElementById('countdown');
+        if (countdownElement) {
+            const countdownText = `第七赛季-蛛丝赤已经到来！`;
+            const animatedText = createAnimatedText(countdownText);
+            countdownElement.innerHTML = animatedText;
+        }
     }
     
     // 计时器功能实现
@@ -666,6 +668,9 @@ const viewRankingBtn = document.getElementById('view-ranking-btn');
         updateTimerDisplay();
     }
     
-    // 页面加载完成后初始化计时器
-    window.addEventListener('DOMContentLoaded', initTimer);
+    // 页面加载完成后初始化倒计时和计时器
+    window.addEventListener('DOMContentLoaded', () => {
+        initCountdown();
+        initTimer();
+    });
 })();

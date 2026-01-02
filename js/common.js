@@ -54,14 +54,6 @@
             });
     }
 
-    // 直接显示赛季到来文字
-    const countdownElement = document.getElementById('countdown');
-    if (countdownElement) {
-        const countdownText = `第七赛季-蛛丝赤已经到来！`;
-        const animatedText = createAnimatedText(countdownText);
-        countdownElement.innerHTML = animatedText;
-    }
-    
     // 创建带有闪烁动画效果的文本
     function createAnimatedText(text) {
         // 处理换行符，将文本分成多行
@@ -91,6 +83,14 @@
         });
         
         return result;
+    }
+    
+    // 直接显示赛季到来文字
+    const countdownElement = document.getElementById('countdown');
+    if (countdownElement) {
+        const countdownText = `第七赛季-蛛丝赤已经到来！`;
+        const animatedText = createAnimatedText(countdownText);
+        countdownElement.innerHTML = animatedText;
     }
     
     // 计时器功能实现

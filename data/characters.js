@@ -42,7 +42,8 @@ export const sinnerData = [
             { name: "剑契组杀手", avatar: "assets/images/Faust/Faust-jian_qi.webp" },
             { name: "呼啸山庄管家", avatar: "assets/images/Faust/Faust-guan_jia.webp" },
             { name: "黑兽-卯魁首", avatar: "assets/images/Faust/Faust-tu.webp" },
-            { name: "多裂纹事务所代表", avatar: "assets/images/Faust/Faust-duo_lie.webp" }
+            { name: "多裂纹事务所代表", avatar: "assets/images/Faust/Faust-duo_lie.webp" },
+            {name:"食指苦行者：【纸条】", avatar: "assets/images/Faust/Faust-index_finger.webp"}
         ]
     },
     {
@@ -255,7 +256,8 @@ export const sinnerData = [
             { name: "剑契组杀手", avatar: "assets/images/Outis/Outis-jian_qi.webp" },
             { name: "环指点彩派学徒", avatar: "assets/images/Outis/Outis-huan_zhi.webp" },
             { name: "呼啸山庄首席管家", avatar: "assets/images/Outis/Outis-hu_xiao.webp" },
-            { name: "黑兽-卯", avatar: "assets/images/Outis/Outis-tu.webp" }
+            { name: "黑兽-卯", avatar: "assets/images/Outis/Outis-tu.webp" },
+            { name: "LCA瓦吉特先锋三队队长", avatar: "assets/images/Outis/Outis-LCA.webp" }
         ]
     }
 ];

@@ -66,7 +66,6 @@ export const sinnerData = [
             { name: "剑契组杀手", avatar: "assets/images/Don_Quixote/Don_Quixote-jian_qi.webp" },
             { name: "黑兽-未", avatar: "assets/images/Don_Quixote/Don_Quixote-yang.webp" },
             { name: "食指@#$#:【终端】", avatar: "assets/images/Don_Quixote/Don_Quixote-index_finger.webp" }
-
         ]
     },
     {

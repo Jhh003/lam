@@ -64,7 +64,9 @@ export const sinnerData = [
             { name: "脑叶公司E.G.O:提灯", avatar: "assets/images/Don_Quixote/Don_Quixote-L.webp" },
             { name: "拉·曼却领总督", avatar: "assets/images/Don_Quixote/Don_Quixote-xue_tang.webp" },
             { name: "剑契组杀手", avatar: "assets/images/Don_Quixote/Don_Quixote-jian_qi.webp" },
-            { name: "黑兽-未", avatar: "assets/images/Don_Quixote/Don_Quixote-yang.webp" }
+            { name: "黑兽-未", avatar: "assets/images/Don_Quixote/Don_Quixote-yang.webp" },
+            { name: "食指@#$#:【终端】", avatar: "assets/images/Don_Quixote/Don_Quixote-index_finger.webp" }
+
         ]
     },
     {

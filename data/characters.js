@@ -171,7 +171,8 @@ export const sinnerData = [
             { name: "家主候选人", avatar: "assets/images/Ishmael/Ishmael-jia_zhu.webp" },
             { name: "黑云会副会长", avatar: "assets/images/Ishmael/Ishmael-hei_yun.webp" },
             { name: "定事务所代表", avatar: "assets/images/Ishmael/Ishmael-ding.webp" },
-            { name: "埃德加家族管家", avatar: "assets/images/Ishmael/Ishmael-ai_dejia.webp" }
+            { name: "埃德加家族管家", avatar: "assets/images/Ishmael/Ishmael-ai_dejia.webp" },
+            { name: "蜘蛛巢中指子辈", avatar: "assets/images/Ishmael/Ishmael-zhongzhi.webp" }
         ]
     },
     {

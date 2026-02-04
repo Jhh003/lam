@@ -40,17 +40,62 @@ function initScrollModule(domElements, globalState) {
     personaOffset = 0;
     personaScrollInterval = null;
     isPersonaScrolling = false;
+    
+    // 【重要】重置选择状态变量，避免残留数据
+    currentSelectedSinner = null;
+    currentSelectedPersona = null;
 }
 
 // 创建罪人滚动列表
 function createSinnerScrollList(items) {
+    // 【修复】确保所有必要的 DOM 元素引用在动态导入时也有效
+    if (!sinnerScroll) {
+        sinnerScroll = document.getElementById('sinner-scroll');
+    }
+    if (!personaStartBtn) {
+        personaStartBtn = document.getElementById('persona-start-btn');
+    }
+    if (!selectedSinnerEl) {
+        selectedSinnerEl = document.getElementById('selected-sinner');
+    }
+    if (!selectedPersonaEl) {
+        selectedPersonaEl = document.getElementById('selected-persona');
+    }
+    
     sinnerScroll.innerHTML = '';
     sinnerItems = items;
     
-    // 计算显示行数 (最小1行，最大5行)
-    const visibleRows = Math.min(Math.max(items.length, 1), 5);
+    // 【重要】创建新的罪人列表时，重置所有选择状态
+    currentSelectedSinner = null;
+    currentSelectedPersona = null;
+    window.currentSelectedSinner = null;
+    window.currentSelectedPersona = null;
+    
+    // 重置显示文本
+    if (selectedSinnerEl) selectedSinnerEl.textContent = '未选择';
+    if (selectedPersonaEl) selectedPersonaEl.textContent = '未选择';
+    
+    // 重置人格区域状态，确保显示空状态
+    const personaEmpty = document.getElementById('persona-empty');
+    if (personaEmpty) {
+        personaEmpty.classList.remove('hidden');
+    }
+    
+    // 重置罪人空状态
+    const sinnerEmpty = document.getElementById('sinner-empty');
+    if (sinnerEmpty) {
+        sinnerEmpty.classList.remove('hidden');
+    }
+    
+    // 清除之前的高亮
+    clearHighlight(sinnerScroll);
+    
+    // 计算显示行数 (最小3行，最大5行) - 修复：单个罪人时也至少显示3行
+    const visibleRows = Math.min(Math.max(items.length, 3), 5);
     const containerHeight = visibleRows * itemHeight;
-    sinnerScroll.parentElement.style.height = `${containerHeight}px`;
+    if (sinnerScroll.parentElement) {
+        sinnerScroll.parentElement.style.height = `${containerHeight}px`;
+    }
     
     // 如果只有一个项目，禁用二级转盘开始按钮
     personaStartBtn.disabled = items.length === 1;
@@ -102,12 +147,41 @@ function createSinnerScrollList(items) {
     // 设置scroll-list的高度，确保所有项目都能被滚动到
     sinnerScroll.style.height = `${itemCount * itemHeight}px`;
     
-    // 如果只有一个项目，直接高亮显示
+    // 如果只有一个项目，直接高亮显示并自动选中
     if (items.length === 1) {
         setTimeout(() => {
             highlightSelectedItem(sinnerScroll, 0);
+            
+            // 【修复】自动选中唯一的罪人并更新人格列表
+            const sinner = items[0];
+            currentSelectedSinner = sinner;
+            window.currentSelectedSinner = sinner;
+            
+            // 更新显示文本
+            if (selectedSinnerEl) {
+                selectedSinnerEl.textContent = sinner.name;
+            }
+            
+            // 隐藏罪人空状态
+            const sinnerEmpty = document.getElementById('sinner-empty');
+            if (sinnerEmpty) {
+                sinnerEmpty.classList.add('hidden');
+            }
+            
+            // 更新人格列表
+            // 【修复】确保人格数据被正确传递给createPersonaScrollList
+            // 使用所有人格（不依赖filteredPersonalityData，因为applyFilters是异步的）
+            if (sinner.personalities && Array.isArray(sinner.personalities)) {
+                createPersonaScrollList(sinner.personalities);
+            } else {
+                // 如果没有人格数据，显示提示
+                createPersonaScrollList([]);
+            }
         }, 100);
     }
+    
+    // 【修复】更新结果显示面板（包括罪人计数）
+    updateResultDisplay();
 }
 
 // 创建人格滚动列表
@@ -119,13 +193,32 @@ function createPersonaScrollList(items) {
         return;
     }
     
+    // 【修复】确保所有必要的 DOM 元素引用在动态导入时也有效
+    if (!personaScroll) {
+        personaScroll = document.getElementById('persona-scroll');
+    }
+    if (!personaStartBtn) {
+        personaStartBtn = document.getElementById('persona-start-btn');
+    }
+    if (!selectedPersonaEl) {
+        selectedPersonaEl = document.getElementById('selected-persona');
+    }
+    
+    // 【修复】隐藏空状态提示，显示滚动列表
+    const personaEmpty = document.getElementById('persona-empty');
+    if (personaEmpty) {
+        personaEmpty.classList.add('hidden');
+    }
+    
     personaScroll.innerHTML = '';
     personaItems = items;
     
-    // 计算显示行数 (最小1行，最大5行)
-    const visibleRows = Math.min(Math.max(items.length, 1), 5);
+    // 计算显示行数 (最小3行，最大5行)
+    const visibleRows = Math.min(Math.max(items.length, 3), 5);
     const containerHeight = visibleRows * itemHeight;
-    personaScroll.parentElement.style.height = `${containerHeight}px`;
+    if (personaScroll.parentElement) {
+        personaScroll.parentElement.style.height = `${containerHeight}px`;
+    }
     
     // 特殊处理：如果是提示字符串，则不循环创建
     if (items.length === 1 && typeof items[0] === 'string') {
@@ -155,6 +248,12 @@ function createPersonaScrollList(items) {
         
         item.appendChild(content);
         personaScroll.appendChild(item);
+        
+        // 【修复】显示空状态提示（即消息字符串时显示）
+        const personaEmpty = document.getElementById('persona-empty');
+        if (personaEmpty) {
+            personaEmpty.classList.remove('hidden');
+        }
         
         personaStartBtn.disabled = true;
         return;
@@ -279,10 +378,14 @@ function createPersonaScrollList(items) {
     } else {
         personaStartBtn.disabled = false;
     }
+    
+    // 【修复】更新结果显示面板
+    updateResultDisplay();
 }
 
 // 开始罪人滚动
 function startSinnerScroll() {
+    console.log('startSinnerScroll被调用', {sinnerStartBtn, sinnerStopBtn, sinnerScroll});
     if (window.filteredSinnerData.length < 1) {
         Modal.alert('请至少选择一个罪人！', '提示');
         return;
@@ -296,8 +399,23 @@ function startSinnerScroll() {
     
     if (sinnerScrollInterval) return;
     
-    sinnerStartBtn.disabled = true;
-    sinnerStopBtn.disabled = false;
+    // 隐藏空状态
+    const sinnerEmpty = document.getElementById('sinner-empty');
+    if (sinnerEmpty) {
+        sinnerEmpty.classList.add('hidden');
+    }
+    
+    // 添加滚动状态CSS类
+    const sinnerScrollContainer = document.getElementById('sinner-scroll-container');
+    if (sinnerScrollContainer) {
+        sinnerScrollContainer.classList.add('scrolling');
+    }
+    
+    // 直接获取按钮元素（绕过模块变量缓存问题）
+    const startBtn = document.getElementById('sinner-start-btn') || sinnerStartBtn;
+    const stopBtn = document.getElementById('sinner-stop-btn') || sinnerStopBtn;
+    if (startBtn) startBtn.disabled = true;
+    if (stopBtn) stopBtn.disabled = false;
     isSinnerScrolling = true;
     
     // 清除之前选中的高亮
@@ -363,6 +481,7 @@ function stopSinnerScroll() {
         window.currentSelectedSinner = currentSelectedSinner; // 更新window对象
         selectedSinnerEl.textContent = currentSelectedSinner.name;
         selectedPersonaEl.textContent = "未选择";
+        updateResultDisplay();
         
         // 高亮显示
         highlightSelectedItem(sinnerScroll, window.filteredSinnerData.findIndex(s => s.id === currentSelectedSinner.id));
@@ -435,26 +554,38 @@ function stopSinnerScroll() {
     // 计算显示行数和中心行索引
     const visibleRows = Math.min(Math.max(window.filteredSinnerData.length, 1), 5);
     const centerIndex = Math.floor(visibleRows / 2);
-    const centerOffset = centerIndex * itemHeight;
+    // 修正：centerOffset应该是到可视区域中心的距离，而不是到中心行顶部
+    const centerOffset = centerIndex * itemHeight + itemHeight / 2;
     
     // 计算目标偏移量，确保选中项显示在中心行
     const loopCount = 5; // 使用第5次循环的项目进行定位，确保前后都有足够项目
     const targetOffset = (filteredIndex + loopCount * window.filteredSinnerData.length) * itemHeight - centerOffset;
     
-    // 平滑过渡到目标位置
-    sinnerScroll.style.transition = 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
-    sinnerScroll.style.transform = `translateY(-${targetOffset}px)`;
+    // 增加随机减速效果：额外滚动整数圈（1-3圈），确保选中项仍在中心位置
+    const randomExtraSpins = 1 + Math.floor(Math.random() * 3); // 1到3整圈
+    const extraOffset = randomExtraSpins * window.filteredSinnerData.length * itemHeight;
+    const finalOffset = targetOffset + extraOffset;
+    
+    // 平滑过渡到目标位置（使用更有趣的缓动函数）
+    sinnerScroll.style.transition = 'transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    sinnerScroll.style.transform = `translateY(-${finalOffset}px)`;
     
     // 更新当前偏移量
-    sinnerOffset = targetOffset;
+    sinnerOffset = finalOffset;
     
     // 高亮显示选中的项目
     setTimeout(() => {
-        highlightSelectedItem(sinnerScroll, filteredIndex);
-    }, 800); // 等待过渡动画完成
+        highlightSelectedItem(sinnerScroll, filteredIndex, sinnerOffset, window.filteredSinnerData.length);
+    }, 1200); // 等待过渡动画完成
     
     sinnerStartBtn.disabled = false;
     sinnerStopBtn.disabled = true;
+    
+    // 移除滚动状态CSS类
+    const sinnerScrollContainer = document.getElementById('sinner-scroll-container');
+    if (sinnerScrollContainer) {
+        sinnerScrollContainer.classList.remove('scrolling');
+    }
     
     // 人格选择按钮状态由createPersonaScrollList函数自动处理
     // personaStartBtn.disabled = false;
@@ -496,6 +627,9 @@ function stopSinnerScroll() {
             checkEasterEgg();
         }, 50);
     }
+    
+    // 更新结果展示面板
+    updateResultDisplay();
 }
 
 // 开始人格滚动
@@ -558,6 +692,18 @@ function startPersonaScroll() {
     if (personasToShow.length === 1) {
         stopPersonaScroll();
         return;
+    }
+    
+    // 隐藏空状态
+    const personaEmpty = document.getElementById('persona-empty');
+    if (personaEmpty) {
+        personaEmpty.classList.add('hidden');
+    }
+    
+    // 添加滚动状态CSS类
+    const personaScrollContainer = document.getElementById('persona-scroll-container');
+    if (personaScrollContainer) {
+        personaScrollContainer.classList.add('scrolling');
     }
     
     if (personaScrollInterval) return;
@@ -635,6 +781,7 @@ function stopPersonaScroll() {
             currentSelectedPersona = selectedPersona;
             window.currentSelectedPersona = selectedPersona;
             selectedPersonaEl.textContent = typeof selectedPersona === 'object' ? selectedPersona.name : selectedPersona;
+            updateResultDisplay();
             
             // 高亮显示
             highlightSelectedItem(personaScroll, 0);
@@ -682,30 +829,43 @@ function stopPersonaScroll() {
     currentSelectedPersona = selectedPersona;
     window.currentSelectedPersona = selectedPersona; // 更新window对象
     selectedPersonaEl.textContent = typeof selectedPersona === 'object' ? selectedPersona.name : selectedPersona;
+    updateResultDisplay();
     
     // 计算显示行数和中心行索引
     const visibleRows = Math.min(Math.max(personasToShow.length, 1), 5);
     const centerIndex = Math.floor(visibleRows / 2);
-    const centerOffset = centerIndex * itemHeight;
+    // 修正：centerOffset应该是到可视区域中心的距离，而不是到中心行顶部
+    const centerOffset = centerIndex * itemHeight + itemHeight / 2;
     
     // 计算目标偏移量，确保选中项显示在中心行
     const loopCount = 5; // 使用第5次循环的项目进行定位
     const targetOffset = (randomIndex + loopCount * personasToShow.length) * itemHeight - centerOffset;
     
-    // 平滑过渡到目标位置
-    personaScroll.style.transition = 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
-    personaScroll.style.transform = `translateY(-${targetOffset}px)`;
+    // 增加随机减速效果：额外滚动整数圈（1-3圈），确保选中项仍在中心位置
+    const randomExtraSpins = 1 + Math.floor(Math.random() * 3); // 1到3整圈
+    const extraOffset = randomExtraSpins * personasToShow.length * itemHeight;
+    const finalOffset = targetOffset + extraOffset;
+    
+    // 平滑过渡到目标位置（使用更有趣的缓动函数）
+    personaScroll.style.transition = 'transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    personaScroll.style.transform = `translateY(-${finalOffset}px)`;
     
     // 更新当前偏移量
-    personaOffset = targetOffset;
+    personaOffset = finalOffset;
     
     // 高亮显示选中的项目
     setTimeout(() => {
-        highlightSelectedItem(personaScroll, randomIndex);
-    }, 800); // 等待过渡动画完成
+        highlightSelectedItem(personaScroll, randomIndex, personaOffset, personasToShow.length);
+    }, 1200); // 等待过渡动画完成
     
     personaStartBtn.disabled = false;
     personaStopBtn.disabled = true;
+    
+    // 移除滚动状态CSS类
+    const personaScrollContainer = document.getElementById('persona-scroll-container');
+    if (personaScrollContainer) {
+        personaScrollContainer.classList.remove('scrolling');
+    }
     
     // 彩蛋检测：检查是否触发特殊人格彩蛋
     checkEasterEgg();
@@ -719,14 +879,19 @@ function clearHighlight(scrollContainer) {
     });
 }
 
-// 高亮显示选中项
-function highlightSelectedItem(scrollContainer, index) {
+// 高亮显示选中项 - 重构版本（支持少量项目）
+function highlightSelectedItem(scrollContainer, selectedIndex, scrollOffset = null, itemsLength = null) {
     clearHighlight(scrollContainer);
     const items = scrollContainer.querySelectorAll('.scroll-item');
+    
+    if (!items.length || itemsLength === null || itemsLength === 0) return;
+    
+    // 简化逻辑：直接找到originalIndex === selectedIndex的元素
+    // 因为我们已经知道是哪个原始索引被选中了
     items.forEach(item => {
-        const itemOriginalIndex = parseInt(item.dataset.originalIndex);
-        // 查找与给定索引匹配的项目（考虑到重复的项目）
-        if (itemOriginalIndex === index) {
+        const itemOriginalIndex = parseInt(item.dataset.originalIndex) || 0;
+        // 高亮所有数据原始索引与选中项相同的元素（10次重复）
+        if (itemOriginalIndex === selectedIndex) {
             item.classList.add('selected');
         }
     });
@@ -891,6 +1056,176 @@ function triggerUniversalEasterEgg(videoPath) {
     }, 100); // 稍微延迟，等待视频加载
 }
 
+// 更新结果展示面板
+function updateResultDisplay() {
+    console.log('updateResultDisplay被调用', {sinner: currentSelectedSinner?.name, persona: currentSelectedPersona?.name});
+    const resultDisplay = document.getElementById('result-display');
+    const resultFinal = document.getElementById('result-final');
+    const sinnerEmpty = document.getElementById('sinner-empty');
+    const personaEmpty = document.getElementById('persona-empty');
+    const availableSinnersEl = document.getElementById('available-sinners');
+    
+    // 更新可用罪人数量
+    if (availableSinnersEl && window.filteredSinnerData) {
+        availableSinnersEl.textContent = `${window.filteredSinnerData.length}/12`;
+    }
+    
+    // 罪人选择后隐藏空状态
+    if (currentSelectedSinner && sinnerEmpty) {
+        sinnerEmpty.style.display = 'none';
+    }
+    
+    // 人格选择后隐藏空状态
+    if (currentSelectedPersona && personaEmpty) {
+        personaEmpty.style.display = 'none';
+    }
+    
+    // 人格选择后更新结果面板（显示详细信息）
+    if (currentSelectedSinner && currentSelectedPersona) {
+        // 隐藏空状态，显示最终结果
+        if (resultDisplay) {
+            resultDisplay.style.display = 'none';
+        }
+        if (resultFinal) {
+            resultFinal.style.display = 'block';
+        }
+        
+        // 更新罪人信息
+        const sinnerNameEl = document.getElementById('selected-sinner');
+        const sinnerImg = document.getElementById('result-sinner-img');
+        const sinnerFallback = document.getElementById('result-sinner-fallback');
+        
+        if (sinnerNameEl) {
+            sinnerNameEl.textContent = typeof currentSelectedSinner === 'object' 
+                ? currentSelectedSinner.name 
+                : currentSelectedSinner;
+        }
+        
+        if (sinnerImg && currentSelectedSinner.avatar) {
+            sinnerImg.src = currentSelectedSinner.avatar;
+            sinnerImg.alt = currentSelectedSinner.name;
+            sinnerImg.style.display = 'block';
+            if (sinnerFallback) sinnerFallback.style.display = 'none';
+            
+            // 图片加载失败时显示fallback
+            sinnerImg.onerror = function() {
+                this.style.display = 'none';
+                if (sinnerFallback) sinnerFallback.style.display = 'flex';
+            };
+        }
+        
+        // 更新人格信息
+        const personaNameEl = document.getElementById('selected-persona');
+        const personaImg = document.getElementById('result-persona-img');
+        const personaFallback = document.getElementById('result-persona-fallback');
+        
+        const personaName = typeof currentSelectedPersona === 'object' 
+            ? currentSelectedPersona.name 
+            : currentSelectedPersona;
+        
+        if (personaNameEl) {
+            personaNameEl.textContent = personaName;
+        }
+        
+        // 获取人格头像
+        let personaAvatar = '';
+        if (typeof currentSelectedPersona === 'object' && currentSelectedPersona.avatar) {
+            personaAvatar = currentSelectedPersona.avatar;
+        } else if (currentSelectedSinner && currentSelectedSinner.personalities) {
+            // 从罪人数据中查找对应人格的头像
+            const persona = currentSelectedSinner.personalities.find(p => p.name === personaName);
+            if (persona && persona.avatar) {
+                personaAvatar = persona.avatar;
+            }
+        }
+        
+        if (personaImg && personaAvatar) {
+            personaImg.src = personaAvatar;
+            personaImg.alt = personaName;
+            personaImg.style.display = 'block';
+            if (personaFallback) personaFallback.style.display = 'none';
+            
+            personaImg.onerror = function() {
+                this.style.display = 'none';
+                if (personaFallback) personaFallback.style.display = 'flex';
+            };
+        }
+        
+    } else if (currentSelectedSinner) {
+        // 只选择了罪人，显示中间状态
+        if (resultDisplay) {
+            resultDisplay.style.display = 'block'; // 确保显示resultDisplay（修复重新选择罪人后结果不显示的bug）
+            resultDisplay.innerHTML = `
+                <div class="result-empty">
+                    <div class="result-sinner-preview">
+                        <div class="result-sinner-avatar" style="margin: 0 auto 16px;">
+                            <img src="${currentSelectedSinner.avatar || ''}" alt="${currentSelectedSinner.name}" 
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" 
+                                style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--lc-gold);">
+                            <div class="avatar-fallback" style="display:none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="result-empty-text" style="color: var(--lc-gold);">${currentSelectedSinner.name}</div>
+                        <div class="result-empty-hint">已选择罪人，请继续选择人格</div>
+                    </div>
+                </div>
+            `;
+        }
+        if (resultFinal) {
+            resultFinal.style.display = 'none';
+        }
+    }
+}
+
+// 重置结果展示
+function resetResultDisplay() {
+    const resultDisplay = document.getElementById('result-display');
+    const resultFinal = document.getElementById('result-final');
+    const sinnerEmpty = document.getElementById('sinner-empty');
+    const personaEmpty = document.getElementById('persona-empty');
+    
+    if (resultDisplay) {
+        resultDisplay.style.display = 'block';
+        resultDisplay.innerHTML = `
+            <div class="result-empty">
+                <div class="result-empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                </div>
+                <div class="result-empty-text">等待抽取</div>
+                <div class="result-empty-hint">完成两级选择查看结果</div>
+            </div>
+        `;
+    }
+    if (resultFinal) {
+        resultFinal.style.display = 'none';
+    }
+    if (sinnerEmpty) {
+        sinnerEmpty.classList.remove('hidden');
+    }
+    
+    // 【修复】只在没有选择罪人时显示 persona-empty
+    // 如果已经选择了罪人，persona-empty 应该保持隐藏状态（因为人格列表已经渲染）
+    if (personaEmpty && !currentSelectedSinner) {
+        personaEmpty.classList.remove('hidden');
+    }
+    
+    // 重置图片
+    const sinnerImg = document.getElementById('result-sinner-img');
+    const sinnerFallback = document.getElementById('result-sinner-fallback');
+    const personaImg = document.getElementById('result-persona-img');
+    const personaFallback = document.getElementById('result-persona-fallback');
+    
+    if (sinnerImg) { sinnerImg.style.display = 'none'; sinnerImg.src = ''; }
+    if (sinnerFallback) sinnerFallback.style.display = 'flex';
+    if (personaImg) { personaImg.style.display = 'none'; personaImg.src = ''; }
+    if (personaFallback) personaFallback.style.display = 'flex';
+}
+
 export {
     initScrollModule,
     createSinnerScrollList,
@@ -901,5 +1236,7 @@ export {
     startPersonaScroll,
     stopPersonaScroll,
     clearHighlight,
-    highlightSelectedItem
+    highlightSelectedItem,
+    updateResultDisplay,
+    resetResultDisplay
 };

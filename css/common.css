@@ -434,17 +434,24 @@ h1 {
     color: #000;
 }
 
+/* 人格设置容器 */
+#personality-settings-container {
+    width: 100%;
+    text-align: center;
+}
+
 /* 分页样式 */
+#personality-pagination,
 .pagination {
     display: flex;
-    overflow-x: auto;
+    flex-wrap: wrap;
     justify-content: center;
-    margin: 20px 0;
+    align-items: center;
+    margin: 20px auto;
     gap: 8px;
-    padding: 10px;
-    scrollbar-width: thin;
-    scrollbar-color: #d4af37 #1a1a2e;
-    -webkit-overflow-scrolling: touch;
+    padding: 10px 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .pagination::-webkit-scrollbar {
@@ -562,10 +569,11 @@ h1 {
         padding: 15px;
     }
     
+    #personality-pagination,
     .pagination {
-        padding: 10px;
-        margin: 15px -15px;
-        justify-content: flex-start !important;
+        padding: 5px;
+        margin: 15px auto;
+        justify-content: center !important;
     }
     
     .page-btn {

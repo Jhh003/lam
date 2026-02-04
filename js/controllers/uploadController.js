@@ -1,405 +1,335 @@
 /**
- * UploadController - 上传模块
- * 负责向GitHub提交通关记录到全球排行榜
+ * 上传控制器 - 管理全球排行榜上传功能
  * 
- * 功能�?
- * - 显示/隐藏上传模态窗�?
- * - 处理上传表单
+ * 职责：
+ * - 处理上传流程
  * - 验证上传数据
  * - 生成GitHub Issue URL
- * - 处理完整记录和简化记录的上传
+ * - 管理上传模态框
+ * 
+ * @module UploadController
  */
 
+import { appState } from '../core/appState.js';
+import { eventBus, GameEvents } from '../core/eventBus.js';
+import { logger } from '../core/logger.js';
+import { uiController } from './uiController.js';
+
+// GitHub仓库配置
+const REPO_OWNER = 'Jhh003';
+const REPO_NAME = 'lam';
+const MIN_UPLOAD_TIME = 7200; // 最小上传时间（秒）：2小时
+
 export class UploadController {
-    constructor(appState, eventBus, logger, modal) {
-        this.appState = appState;
-        this.eventBus = eventBus;
-        this.logger = logger;
-        this.modal = modal;
+    constructor() {
+        this.dom = {
+            uploadModal: null,
+            uploadTypeCards: null,
+            fullRecordForm: null,
+            floorOnlyForm: null,
+            confirmButton: null,
+            cancelButton: null
+        };
         
-        // DOM元素（延迟初始化�?
-        this.uploadModal = null;
-        this.uploadModalCloseBtn = null;
-        this.cancelUploadBtn = null;
-        this.uploadGlobalBtn = null;
-        this.uploadGlobalForm = null;
-        this.uploadTypeRadios = null;
-        this.fullUploadFields = null;
-        this.floorOnlyUploadFields = null;
-        this.fullTimeDisplay = null;
-        
-        // 配置
-        this.repoOwner = 'Jhh003';
-        this.repoName = 'lam';
-        this.minUploadTime = 7200; // 2小时（秒�?
-        
-        // 绑定方法
-        this.showUploadModal = this.showUploadModal.bind(this);
-        this.hideUploadModal = this.hideUploadModal.bind(this);
-        this.handleUploadTypeChange = this.handleUploadTypeChange.bind(this);
-        this.handleUploadSubmit = this.handleUploadSubmit.bind(this);
-        
-        this.logger.debug('UploadController已初始化');
+        this.currentUploadType = 'full'; // 'full' 或 'floor-only'
+        this.initialized = false;
     }
     
     /**
      * 初始化DOM元素
-     * @param {Object} domElements - 包含必需DOM元素的对�?
+     * @param {Object} domElements - DOM元素映射
      */
     initDOM(domElements) {
-        try {
-            this.uploadModal = domElements.uploadModal || document.getElementById('upload-modal');
-            this.uploadModalCloseBtn = domElements.uploadModalCloseBtn || document.getElementById('upload-modal-close-btn');
-            this.cancelUploadBtn = domElements.cancelUploadBtn || document.getElementById('cancel-upload-btn');
-            this.uploadGlobalBtn = domElements.uploadGlobalBtn || document.getElementById('upload-global-btn');
-            this.uploadGlobalForm = domElements.uploadGlobalForm || document.getElementById('upload-global-form');
-            this.uploadTypeRadios = domElements.uploadTypeRadios || document.querySelectorAll('input[name="uploadType"]');
-            this.fullUploadFields = domElements.fullUploadFields || document.getElementById('full-upload-fields');
-            this.floorOnlyUploadFields = domElements.floorOnlyUploadFields || document.getElementById('floor-only-upload-fields');
-            this.fullTimeDisplay = domElements.fullTimeDisplay || document.getElementById('full-time-display');
-            
-            // 绑定事件
-            this.uploadGlobalBtn?.addEventListener('click', () => this.uploadToGlobalRanking());
-            this.uploadModalCloseBtn?.addEventListener('click', this.hideUploadModal);
-            this.cancelUploadBtn?.addEventListener('click', this.hideUploadModal);
-            this.uploadTypeRadios?.forEach(radio => {
-                radio.addEventListener('change', this.handleUploadTypeChange);
+        Object.assign(this.dom, domElements);
+        this.initialized = true;
+        logger.info('[UploadController] DOM初始化完成');
+    }
+    
+    /**
+     * 显示上传模态框
+     */
+    showUploadModal() {
+        // 验证是否有选中的罪人和人格
+        const sinner = appState.getSinner();
+        const persona = appState.getPersona();
+        
+        if (!sinner) {
+            uiController.showError('请先选择罪人');
+            return;
+        }
+        
+        if (!persona) {
+            uiController.showError('请先选择人格');
+            return;
+        }
+        
+        // 打开模态框
+        uiController.openModal('upload-modal');
+        
+        // 初始化表单
+        this.initUploadForm();
+        
+        logger.info('[UploadController] 上传模态框已打开');
+    }
+    
+    /**
+     * 初始化上传表单
+     */
+    initUploadForm() {
+        // 设置默认选择为完整记录
+        this.selectUploadType('full');
+        
+        // 填充时间信息
+        const elapsedSeconds = appState.getElapsedSeconds();
+        const timeDisplay = document.getElementById('upload-time-display');
+        if (timeDisplay) {
+            timeDisplay.textContent = this.formatTime(elapsedSeconds);
+        }
+        
+        // 绑定上传类型切换事件
+        this.bindUploadTypeEvents();
+        
+        // 绑定表单提交事件
+        this.bindFormSubmitEvents();
+    }
+    
+    /**
+     * 选择上传类型
+     * @param {string} type - 'full' 或 'floor-only'
+     */
+    selectUploadType(type) {
+        this.currentUploadType = type;
+        
+        // 更新UI选择状态
+        const cards = document.querySelectorAll('.upload-type-card');
+        cards.forEach(card => {
+            if (card.dataset.type === type) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+        
+        // 显示对应的表单
+        const fullForm = document.getElementById('full-record-form');
+        const floorForm = document.getElementById('floor-only-form');
+        
+        if (type === 'full') {
+            if (fullForm) fullForm.style.display = 'block';
+            if (floorForm) floorForm.style.display = 'none';
+        } else {
+            if (fullForm) fullForm.style.display = 'none';
+            if (floorForm) floorForm.style.display = 'block';
+        }
+        
+        logger.debug(`[UploadController] 上传类型选择: ${type}`);
+    }
+    
+    /**
+     * 绑定上传类型切换事件
+     */
+    bindUploadTypeEvents() {
+        const cards = document.querySelectorAll('.upload-type-card');
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                const type = card.dataset.type;
+                this.selectUploadType(type);
             });
-            this.uploadGlobalForm?.addEventListener('submit', this.handleUploadSubmit);
-            
-            // 点击背景关闭
-            this.uploadModal?.addEventListener('click', (e) => {
-                if (e.target === this.uploadModal) {
-                    this.hideUploadModal();
-                }
+        });
+    }
+    
+    /**
+     * 绑定表单提交事件
+     */
+    bindFormSubmitEvents() {
+        const confirmBtn = document.getElementById('upload-confirm-btn');
+        const cancelBtn = document.getElementById('upload-cancel-btn');
+        
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                this.handleUploadSubmit();
             });
-            
-            this.logger.debug('UploadController DOM初始化完�?);
-        } catch (error) {
-            this.logger.error('UploadController DOM初始化失�?, error);
-            throw error;
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                uiController.closeModal('upload-modal');
+            });
         }
     }
     
     /**
-     * 触发上传到全球排行榜
+     * 处理上传提交
      */
-    async uploadToGlobalRanking() {
-        try {
-            const selectedSinner = this.appState.get('game.selectedSinner');
-            const selectedPersona = this.appState.get('game.selectedPersona');
-            
-            if (!selectedSinner || !selectedPersona) {
-                await this.modal.alert(
-                    '检测到您当前未选择罪人或人格。\n\n' +
-                    '您需要先在主界面完成罪人和人格的随机抽取�? +
-                    '然后再进行上传�?,
-                    '需要先抽取'
-                );
-                return;
-            }
-            
-            this.showUploadModal();
-        } catch (error) {
-            this.logger.error('上传到全球排行榜失败', error);
-        }
-    }
-    
-    /**
-     * 显示上传模态窗�?
-     */
-    async showUploadModal() {
-        try {
-            if (!this.uploadModal || !this.uploadGlobalForm) {
-                await this.modal.alert('上传功能初始化失败，请刷新页面重试�?, '错误');
-                return;
-            }
-            
-            // 获取当前计时器时�?
-            const timerSeconds = this.appState.get('timer.elapsedSeconds') || 0;
-            
-            // 填充时间显示
-            if (this.fullTimeDisplay) {
-                this.fullTimeDisplay.value = this.formatTime(timerSeconds);
-            }
-            
-            // 重置表单
-            this.uploadGlobalForm.reset();
-            
-            // 默认选中完整记录上传
-            const fullRadio = document.querySelector('input[name="uploadType"][value="full"]');
-            if (fullRadio) {
-                fullRadio.checked = true;
-            }
-            
-            // 显示完整字段
-            if (this.fullUploadFields) {
-                this.fullUploadFields.style.display = 'block';
-            }
-            if (this.floorOnlyUploadFields) {
-                this.floorOnlyUploadFields.style.display = 'none';
-            }
-            
-            // 显示模态窗�?
-            this.uploadModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            
-            this.logger.debug('上传模态窗口已打开');
-        } catch (error) {
-            this.logger.error('显示上传模态窗口失�?, error);
-        }
-    }
-    
-    /**
-     * 隐藏上传模态窗�?
-     */
-    hideUploadModal() {
-        try {
-            if (this.uploadModal) {
-                this.uploadModal.classList.remove('active');
-            }
-            document.body.style.overflow = '';
-            this.logger.debug('上传模态窗口已关闭');
-        } catch (error) {
-            this.logger.error('隐藏上传模态窗口失�?, error);
-        }
-    }
-    
-    /**
-     * 处理上传类型切换
-     */
-    handleUploadTypeChange = () => {
-        try {
-            const selectedType = document.querySelector('input[name="uploadType"]:checked')?.value;
-            
-            if (selectedType === 'full') {
-                if (this.fullUploadFields) this.fullUploadFields.style.display = 'block';
-                if (this.floorOnlyUploadFields) this.floorOnlyUploadFields.style.display = 'none';
-            } else if (selectedType === 'floor-only') {
-                if (this.fullUploadFields) this.fullUploadFields.style.display = 'none';
-                if (this.floorOnlyUploadFields) this.floorOnlyUploadFields.style.display = 'block';
-            }
-        } catch (error) {
-            this.logger.error('处理上传类型切换失败', error);
-        }
-    }
-    
-    /**
-     * 处理表单提交
-     */
-    handleUploadSubmit = async (e) => {
-        try {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const selectedType = document.querySelector('input[name="uploadType"]:checked')?.value;
-            const selectedSinner = this.appState.get('game.selectedSinner');
-            const selectedPersona = this.appState.get('game.selectedPersona');
-            
-            if (selectedType === 'full') {
-                await this.submitFullRecord(selectedSinner, selectedPersona);
-            } else if (selectedType === 'floor-only') {
-                await this.submitFloorOnlyRecord(selectedSinner, selectedPersona);
-            }
-            
-            return false;
-        } catch (error) {
-            this.logger.error('处理表单提交失败', error);
+    handleUploadSubmit() {
+        if (this.currentUploadType === 'full') {
+            this.submitFullRecord();
+        } else {
+            this.submitFloorOnlyRecord();
         }
     }
     
     /**
      * 提交完整记录
      */
-    async submitFullRecord(selectedSinner, selectedPersona) {
-        try {
-            const timerSeconds = this.appState.get('timer.elapsedSeconds') || 0;
-            
-            // 验证时间
-            if (timerSeconds < this.minUploadTime) {
-                await this.modal.alert(
-                    '很抱歉，完整记录上传需要通关时间�?2小时�?200秒）。\n\n' +
-                    '您当前的时间为：' + this.formatTime(timerSeconds),
-                    '提示'
-                );
-                return;
-            }
-            
-            // 验证层数选择
-            const floorLevel = document.querySelector('input[name="fullFloorLevel"]:checked')?.value;
-            if (!floorLevel) {
-                await this.modal.alert('请选择单通层数！', '提示');
-                return;
-            }
-            
-            // 获取表单数据
-            const usedEgo = document.getElementById('full-used-ego')?.checked || false;
-            const screenshot = document.getElementById('full-screenshot')?.value.trim() || '';
-            const comment = document.getElementById('full-comment')?.value.trim() || '';
-            
-            // 验证图片链接
-            if (screenshot && !this.isValidUrl(screenshot)) {
-                await this.modal.alert('请输入有效的图片链接�?, '提示');
-                return;
-            }
-            
-            // 生成确认信息
-            const info = `您即将上传以下完整记录到全球排行榜：\n\n` +
-                `罪人�?{selectedSinner.name}\n` +
-                `人格�?{selectedPersona.name}\n` +
-                `时间�?{this.formatTime(timerSeconds)}\n` +
-                `层数：第${floorLevel}层\n` +
-                `E.G.O�?{usedEgo ? '�? : '�?}\n` +
-                `通关图片�?{screenshot || '未提�?}\n` +
-                `备注�?{comment || '�?}\n\n` +
-                `点击确定后将跳转�?GitHub 页面提交记录。\n` +
-                `（您需要有 GitHub 账号）`;
-            
-            const confirmed = await this.modal.confirm(info, '上传确认');
-            
-            if (confirmed) {
-                // 生成 GitHub Issue URL
-                const issueUrl = `https://github.com/${this.repoOwner}/${this.repoName}/issues/new?` +
-                    `labels=通关记录&` +
-                    `template=submit-clear-run.yml&` +
-                    `title=[通关记录] ${selectedSinner.name} - ${selectedPersona.name} - ${this.formatTime(timerSeconds)}`;
-                
-                window.open(issueUrl, '_blank');
-                this.hideUploadModal();
-                
-                // 发出事件
-                this.eventBus.emit('RECORD_SUBMITTED_FULL', {
-                    sinner: selectedSinner,
-                    persona: selectedPersona,
-                    time: timerSeconds,
-                    floorLevel,
-                    usedEgo,
-                    screenshot,
-                    comment
-                });
-                
-                await this.modal.alert(
-                    '已在新窗口打开 GitHub 提交页面。\n\n' +
-                    '请在那里填写表单（包括通关图片链接）并提交 Issue。\n\n' +
-                    '管理员审核通过后，您的记录将出现在全球排行榜中�?,
-                    '提示'
-                );
-            }
-        } catch (error) {
-            this.logger.error('提交完整记录失败', error);
-        }
-    }
-    
-    /**
-     * 提交简化记录（仅层数）
-     */
-    async submitFloorOnlyRecord(selectedSinner, selectedPersona) {
-        try {
-            // 验证层数选择
-            const floorLevel = document.querySelector('input[name="floorOnlyFloorLevel"]:checked')?.value;
-            if (!floorLevel) {
-                await this.modal.alert('请选择单通层数！', '提示');
-                return;
-            }
-            
-            // 获取表单数据
-            const screenshot = document.getElementById('floor-only-screenshot')?.value.trim() || '';
-            const comment = document.getElementById('floor-only-comment')?.value.trim() || '';
-            
-            // 验证图片链接
-            if (screenshot && !this.isValidUrl(screenshot)) {
-                await this.modal.alert('请输入有效的图片链接�?, '提示');
-                return;
-            }
-            
-            // 生成确认信息
-            const info = `您即将上传以下简化记录到全球排行榜：\n\n` +
-                `罪人�?{selectedSinner.name}\n` +
-                `人格�?{selectedPersona.name}\n` +
-                `层数：第${floorLevel}层\n` +
-                `通关图片�?{screenshot || '未提�?}\n` +
-                `备注�?{comment || '�?}\n\n` +
-                `注：此记录不包含通关时间，仅显示在层数排行榜中。\n\n` +
-                `点击确定后将跳转�?GitHub 页面提交记录。\n` +
-                `（您需要有 GitHub 账号）`;
-            
-            const confirmed = await this.modal.confirm(info, '上传确认');
-            
-            if (confirmed) {
-                // 生成 GitHub Issue URL
-                const issueUrl = `https://github.com/${this.repoOwner}/${this.repoName}/issues/new?` +
-                    `labels=层数记录&` +
-                    `template=submit-floor-only.yml&` +
-                    `title=[层数记录] ${selectedSinner.name} - ${selectedPersona.name} - �?{floorLevel}层`;
-                
-                window.open(issueUrl, '_blank');
-                this.hideUploadModal();
-                
-                // 发出事件
-                this.eventBus.emit('RECORD_SUBMITTED_FLOOR_ONLY', {
-                    sinner: selectedSinner,
-                    persona: selectedPersona,
-                    floorLevel,
-                    screenshot,
-                    comment
-                });
-                
-                await this.modal.alert(
-                    '已在新窗口打开 GitHub 提交页面。\n\n' +
-                    '请在那里填写表单（包括通关图片链接）并提交 Issue。\n\n' +
-                    '管理员审核通过后，您的记录将出现在层数排行榜中�?,
-                    '提示'
-                );
-            }
-        } catch (error) {
-            this.logger.error('提交简化记录失�?, error);
-        }
-    }
-    
-    /**
-     * 格式化时间（�?-> HH:MM:SS�?
-     * @param {number} seconds - 秒数
-     * @returns {string} 格式化的时间字符�?
-     */
-    formatTime(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const remainingSeconds = seconds % 60;
+    submitFullRecord() {
+        // 获取数据
+        const sinner = appState.getSinner();
+        const persona = appState.getPersona();
+        const elapsedSeconds = appState.getElapsedSeconds();
         
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        // 验证时间
+        if (elapsedSeconds < MIN_UPLOAD_TIME) {
+            uiController.showError(`完整记录需要至少 ${MIN_UPLOAD_TIME / 3600} 小时的通关时间`);
+            return;
+        }
+        
+        // 获取表单数据
+        const floorLevel = document.querySelector('input[name="floor-level"]:checked')?.value;
+        const usedEgo = document.getElementById('used-ego')?.checked || false;
+        const note = document.getElementById('upload-note')?.value || '';
+        
+        // 验证层数
+        if (!floorLevel) {
+            uiController.showError('请选择单通层数');
+            return;
+        }
+        
+        // 生成Issue URL
+        const issueUrl = this.generateIssueUrl({
+            type: 'full',
+            sinner: sinner.name,
+            persona: persona.name,
+            time: elapsedSeconds,
+            floorLevel,
+            usedEgo,
+            note
+        });
+        
+        // 显示确认对话框
+        uiController.showConfirm(
+            '即将跳转到 GitHub 提交记录，确认继续？',
+            () => {
+                window.open(issueUrl, '_blank');
+                uiController.closeModal('upload-modal');
+                eventBus.emit(GameEvents.RECORD_SUBMITTED, { type: 'full' });
+            },
+            null
+        );
+        
+        logger.info('[UploadController] 提交完整记录');
     }
     
     /**
-     * 验证URL有效�?
-     * @param {string} url - 要验证的URL
-     * @returns {boolean} URL是否有效
+     * 提交简化记录
      */
-    isValidUrl(url) {
-        try {
-            const urlObj = new URL(url);
-            return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-        } catch (_) {
+    submitFloorOnlyRecord() {
+        // 获取数据
+        const sinner = appState.getSinner();
+        const persona = appState.getPersona();
+        
+        // 获取表单数据
+        const floorLevel = document.querySelector('input[name="floor-level-simple"]:checked')?.value;
+        const note = document.getElementById('upload-note-simple')?.value || '';
+        
+        // 验证层数
+        if (!floorLevel) {
+            uiController.showError('请选择单通层数');
+            return;
+        }
+        
+        // 生成Issue URL
+        const issueUrl = this.generateIssueUrl({
+            type: 'floor-only',
+            sinner: sinner.name,
+            persona: persona.name,
+            floorLevel,
+            note
+        });
+        
+        // 显示确认对话框
+        uiController.showConfirm(
+            '即将跳转到 GitHub 提交记录（仅层数记录），确认继续？',
+            () => {
+                window.open(issueUrl, '_blank');
+                uiController.closeModal('upload-modal');
+                eventBus.emit(GameEvents.RECORD_SUBMITTED, { type: 'floor-only' });
+            },
+            null
+        );
+        
+        logger.info('[UploadController] 提交简化记录');
+    }
+    
+    /**
+     * 生成GitHub Issue URL
+     * @param {Object} data - 记录数据
+     * @returns {string} Issue URL
+     */
+    generateIssueUrl(data) {
+        const baseUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/issues/new`;
+        
+        const params = new URLSearchParams();
+        
+        if (data.type === 'full') {
+            params.append('template', 'submit-clear-run.yml');
+            params.append('title', `通关记录 - ${data.sinner} / ${data.persona}`);
+            params.append('labels', '通关记录');
+            params.append('sinner', data.sinner);
+            params.append('persona', data.persona);
+            params.append('time', data.time);
+            params.append('floor', data.floorLevel);
+            params.append('ego', data.usedEgo ? '是' : '否');
+            if (data.note) params.append('note', data.note);
+        } else {
+            params.append('template', 'submit-floor-only.yml');
+            params.append('title', `层数记录 - ${data.sinner} / ${data.persona}`);
+            params.append('labels', '层数记录');
+            params.append('sinner', data.sinner);
+            params.append('persona', data.persona);
+            params.append('floor', data.floorLevel);
+            if (data.note) params.append('note', data.note);
+        }
+        
+        return `${baseUrl}?${params.toString()}`;
+    }
+    
+    /**
+     * 格式化时间
+     * @param {number} totalSeconds - 总秒数
+     * @returns {string} 格式化的时间字符串
+     */
+    formatTime(totalSeconds) {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    /**
+     * 验证上传数据
+     * @param {Object} data - 上传数据
+     * @returns {boolean} 是否有效
+     */
+    validateUploadData(data) {
+        if (!data.sinner || !data.persona) {
             return false;
         }
-    }
-    
-    /**
-     * 清理方法
-     */
-    destroy() {
-        this.uploadGlobalBtn?.removeEventListener('click', () => this.uploadToGlobalRanking());
-        this.uploadModalCloseBtn?.removeEventListener('click', this.hideUploadModal);
-        this.cancelUploadBtn?.removeEventListener('click', this.hideUploadModal);
-        this.uploadTypeRadios?.forEach(radio => {
-            radio.removeEventListener('change', this.handleUploadTypeChange);
-        });
-        this.uploadGlobalForm?.removeEventListener('submit', this.handleUploadSubmit);
         
-        this.logger.debug('UploadController已销�?);
+        if (data.type === 'full') {
+            if (!data.time || data.time < MIN_UPLOAD_TIME) {
+                return false;
+            }
+        }
+        
+        if (!data.floorLevel) {
+            return false;
+        }
+        
+        return true;
     }
 }
 
-export default UploadController;
-
-
-
+// 导出单例
+export const uploadController = new UploadController();

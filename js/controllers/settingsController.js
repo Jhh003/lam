@@ -1,580 +1,467 @@
 /**
- * SettingsController - 设置管理控制�?
- * 负责人格设置、偏好设置等的管理和持久�?
+ * 设置控制器 - 管理用户设置和人格偏好
  * 
- * 架构�?
- * - 依赖注入：appState, eventBus, logger
- * - 状态管理：通过appState管理所有设�?
- * - 事件驱动：通过eventBus与其他模块通信
- * - 零全局变量：不使用window.*
+ * 职责：
+ * - 创建设置UI
+ * - 管理人格偏好设置
+ * - 批量操作（全选、反选）
+ * - 设置持久化
  * 
- * 主要责任�?
- * - 管理人格过滤设置
- * - 提供批量操作（全选、全不选、反选）
- * - 持久化设置到localStorage
- * - 验证设置状�?
+ * @module SettingsController
  */
 
+import { appState } from '../core/appState.js';
+import { eventBus, GameEvents } from '../core/eventBus.js';
+import { logger } from '../core/logger.js';
 import { sinnerData } from '../../data/characters.js';
 
 export class SettingsController {
-    constructor(appState, eventBus, logger) {
-        this.appState = appState;
-        this.eventBus = eventBus;
-        this.logger = logger;
+    constructor() {
+        this.dom = {
+            personalitySettingsContainer: null,
+            saveSettingsButton: null,
+            resetSettingsButton: null
+        };
         
-        // DOM元素（延迟初始化�?
-        this.settingsContainer = null;
-        
-        this.logger.debug('SettingsController已初始化');
+        this.initialized = false;
     }
     
     /**
-     * 初始化SettingsController
-     * @param {Object} domElements - 包含必需DOM元素的对�?
+     * 初始化DOM元素
+     * @param {Object} domElements - DOM元素映射
      */
     initDOM(domElements) {
-        try {
-            this.settingsContainer = domElements.settingsContainer || 
-                                     document.getElementById('personality-settings-container');
-            
-            this.logger.debug('SettingsController DOM初始化完�?);
-        } catch (error) {
-            this.logger.error('SettingsController DOM初始化失�?, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 更新人格过滤状�?
-     * @param {number} sinnerId - 罪人ID
-     * @param {number} personaIndex - 人格索引
-     * @param {boolean} isChecked - 是否启用
-     */
-    updatePersonalityFilter(sinnerId, personaIndex, isChecked) {
-        try {
-            const filters = this.appState.get('filters.personalities') || new Map();
-            
-            if (!filters.has(sinnerId)) {
-                filters.set(sinnerId, new Map());
-            }
-            
-            filters.get(sinnerId).set(personaIndex, isChecked);
-            this.appState.set('filters.personalities', filters);
-            
-            // 发出事件
-            this.eventBus.emit('PERSONALITY_FILTER_CHANGED', {
-                sinnerId,
-                personaIndex,
-                isChecked
-            });
-            
-            this.logger.debug(`人格过滤已更�? sinnerId=${sinnerId}, personaIndex=${personaIndex}, isChecked=${isChecked}`);
-        } catch (error) {
-            this.logger.error('更新人格过滤失败', error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 全选所有人�?
-     */
-    selectAllPersonalities() {
-        try {
-            const filters = new Map();
-            
-            sinnerData.forEach(sinner => {
-                const sinnerFilters = new Map();
-                sinner.personalities.forEach((_, index) => {
-                    sinnerFilters.set(index, true);
-                });
-                filters.set(sinner.id, sinnerFilters);
-            });
-            
-            this.appState.set('filters.personalities', filters);
-            
-            // 更新UI
-            this.updateUICheckboxes(filters);
-            
-            // 发出事件
-            this.eventBus.emit('PERSONALITIES_SELECTED_ALL', { count: this.getTotalPersonalities() });
-            
-            this.logger.debug('已全选所有人�?);
-        } catch (error) {
-            this.logger.error('全选人格失�?, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 取消选择所有人�?
-     */
-    deselectAllPersonalities() {
-        try {
-            const filters = new Map();
-            
-            sinnerData.forEach(sinner => {
-                const sinnerFilters = new Map();
-                sinner.personalities.forEach((_, index) => {
-                    sinnerFilters.set(index, false);
-                });
-                filters.set(sinner.id, sinnerFilters);
-            });
-            
-            this.appState.set('filters.personalities', filters);
-            
-            // 更新UI
-            this.updateUICheckboxes(filters);
-            
-            // 发出事件
-            this.eventBus.emit('PERSONALITIES_DESELECTED_ALL', {});
-            
-            this.logger.debug('已取消选择所有人�?);
-        } catch (error) {
-            this.logger.error('取消选择人格失败', error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 反选所有人�?
-     */
-    invertAllPersonalities() {
-        try {
-            const currentFilters = this.appState.get('filters.personalities') || new Map();
-            const filters = new Map();
-            
-            sinnerData.forEach(sinner => {
-                const sinnerFilters = new Map();
-                sinner.personalities.forEach((_, index) => {
-                    const currentValue = currentFilters.get(sinner.id)?.get(index) ?? true;
-                    sinnerFilters.set(index, !currentValue);
-                });
-                filters.set(sinner.id, sinnerFilters);
-            });
-            
-            this.appState.set('filters.personalities', filters);
-            
-            // 更新UI
-            this.updateUICheckboxes(filters);
-            
-            // 发出事件
-            this.eventBus.emit('PERSONALITIES_INVERTED', {});
-            
-            this.logger.debug('已反选所有人�?);
-        } catch (error) {
-            this.logger.error('反选人格失�?, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 针对特定罪人的全�?
-     * @param {number} sinnerId - 罪人ID
-     */
-    selectSinnerPersonalities(sinnerId) {
-        try {
-            const filters = this.appState.get('filters.personalities') || new Map();
-            
-            if (!filters.has(sinnerId)) {
-                filters.set(sinnerId, new Map());
-            }
-            
-            const sinner = sinnerData.find(s => s.id === sinnerId);
-            if (!sinner) {
-                this.logger.warn(`罪人不存�? ${sinnerId}`);
-                return;
-            }
-            
-            sinner.personalities.forEach((_, index) => {
-                filters.get(sinnerId).set(index, true);
-            });
-            
-            this.appState.set('filters.personalities', filters);
-            
-            // 更新UI
-            this.updateUICheckboxesBySinner(sinnerId, filters);
-            
-            // 发出事件
-            this.eventBus.emit('SINNER_PERSONALITIES_SELECTED', {
-                sinnerId,
-                count: sinner.personalities.length
-            });
-            
-            this.logger.debug(`已全选罪人人�? sinnerId=${sinnerId}`);
-        } catch (error) {
-            this.logger.error('全选罪人人格失�?, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 针对特定罪人的取消选择
-     * @param {number} sinnerId - 罪人ID
-     */
-    deselectSinnerPersonalities(sinnerId) {
-        try {
-            const filters = this.appState.get('filters.personalities') || new Map();
-            
-            if (!filters.has(sinnerId)) {
-                filters.set(sinnerId, new Map());
-            }
-            
-            const sinner = sinnerData.find(s => s.id === sinnerId);
-            if (!sinner) {
-                this.logger.warn(`罪人不存�? ${sinnerId}`);
-                return;
-            }
-            
-            sinner.personalities.forEach((_, index) => {
-                filters.get(sinnerId).set(index, false);
-            });
-            
-            this.appState.set('filters.personalities', filters);
-            
-            // 更新UI
-            this.updateUICheckboxesBySinner(sinnerId, filters);
-            
-            // 发出事件
-            this.eventBus.emit('SINNER_PERSONALITIES_DESELECTED', {
-                sinnerId,
-                count: sinner.personalities.length
-            });
-            
-            this.logger.debug(`已取消选择罪人人格: sinnerId=${sinnerId}`);
-        } catch (error) {
-            this.logger.error('取消选择罪人人格失败', error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 针对特定罪人的反�?
-     * @param {number} sinnerId - 罪人ID
-     */
-    invertSinnerPersonalities(sinnerId) {
-        try {
-            const filters = this.appState.get('filters.personalities') || new Map();
-            
-            if (!filters.has(sinnerId)) {
-                filters.set(sinnerId, new Map());
-            }
-            
-            const sinner = sinnerData.find(s => s.id === sinnerId);
-            if (!sinner) {
-                this.logger.warn(`罪人不存�? ${sinnerId}`);
-                return;
-            }
-            
-            sinner.personalities.forEach((_, index) => {
-                const currentValue = filters.get(sinnerId)?.get(index) ?? true;
-                filters.get(sinnerId).set(index, !currentValue);
-            });
-            
-            this.appState.set('filters.personalities', filters);
-            
-            // 更新UI
-            this.updateUICheckboxesBySinner(sinnerId, filters);
-            
-            // 发出事件
-            this.eventBus.emit('SINNER_PERSONALITIES_INVERTED', {
-                sinnerId,
-                count: sinner.personalities.length
-            });
-            
-            this.logger.debug(`已反选罪人人�? sinnerId=${sinnerId}`);
-        } catch (error) {
-            this.logger.error('反选罪人人格失�?, error);
-            throw error;
-        }
+        Object.assign(this.dom, domElements);
+        this.initialized = true;
+        logger.info('[SettingsController] DOM初始化完成');
     }
     
     /**
      * 创建人格设置UI
      */
     createPersonalitySettings() {
-        try {
-            if (!this.settingsContainer) {
-                this.logger.warn('设置容器未初始化');
-                return;
-            }
+        if (!this.dom.personalitySettingsContainer) {
+            logger.warn('[SettingsController] 人格设置容器未找到');
+            return;
+        }
+        
+        // 创建标签页导航和内容容器
+        const tabNav = document.createElement('div');
+        tabNav.className = 'personality-tab-nav';
+        
+        const tabContent = document.createElement('div');
+        tabContent.className = 'personality-tab-content';
+        
+        // 获取已启用的罪人列表 - 直接检查state中的值
+        const sinnerFilters = appState.get('filters.sinners') || {};
+        const enabledSinners = sinnerData.filter(sinner => {
+            // 如果在过滤器中明确设置为false，则禁用
+            // 否则启用（默认值）
+            return sinnerFilters[sinner.id] !== false;
+        });
+        
+        // 如果没有选中的罪人，显示提示
+        if (enabledSinners.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'personality-empty-state';
+            emptyState.innerHTML = `
+                <p>⚠️ 请先在"罪人筛选设置"中选择至少一个罪人</p>
+                <p style="font-size: 0.9em; color: #888;">选中罪人后，这里将显示对应的人格设置</p>
+            `;
+            this.dom.personalitySettingsContainer.innerHTML = '';
+            this.dom.personalitySettingsContainer.appendChild(emptyState);
+            return;
+        }
+        
+        // 为每个启用的罪人创建标签页
+        enabledSinners.forEach((sinner, index) => {
+            // 创建标签按钮
+            const tabBtn = document.createElement('button');
+            tabBtn.className = 'personality-tab-btn';
+            if (index === 0) tabBtn.classList.add('active');
+            tabBtn.dataset.sinnerId = sinner.id;
+            tabBtn.style.borderColor = sinner.color || '#fff';
+            tabBtn.innerHTML = `
+                <img src="${sinner.avatar}" alt="${sinner.name}" onerror="this.style.display='none'">
+                <span>${sinner.name}</span>
+            `;
             
-            this.settingsContainer.innerHTML = '';
-            
-            // 创建全局控制�?
-            const globalControlDiv = document.createElement('div');
-            globalControlDiv.className = 'filter-controls';
-            
-            const selectAllBtn = document.createElement('button');
-            selectAllBtn.className = 'control-btn';
-            selectAllBtn.textContent = '全选所有人�?;
-            selectAllBtn.addEventListener('click', () => this.selectAllPersonalities());
-            
-            const deselectAllBtn = document.createElement('button');
-            deselectAllBtn.className = 'control-btn';
-            deselectAllBtn.textContent = '取消所有人�?;
-            deselectAllBtn.addEventListener('click', () => this.deselectAllPersonalities());
-            
-            const invertSelectionBtn = document.createElement('button');
-            invertSelectionBtn.className = 'control-btn';
-            invertSelectionBtn.textContent = '反选所有人�?;
-            invertSelectionBtn.addEventListener('click', () => this.invertAllPersonalities());
-            
-            globalControlDiv.appendChild(selectAllBtn);
-            globalControlDiv.appendChild(deselectAllBtn);
-            globalControlDiv.appendChild(invertSelectionBtn);
-            this.settingsContainer.appendChild(globalControlDiv);
-            
-            // 获取当前选中的罪�?
-            const selectedSinners = this.getSelectedSinners();
-            
-            if (selectedSinners.length === 0) {
-                const noSinnerMsg = document.createElement('p');
-                noSinnerMsg.className = 'no-sinner-message';
-                noSinnerMsg.textContent = '请先在罪人筛选设置中选择至少一个罪�?;
-                this.settingsContainer.appendChild(noSinnerMsg);
-                return;
-            }
-            
-            // 创建分页容器
-            const paginationContainer = document.createElement('div');
-            paginationContainer.className = 'pagination';
-            paginationContainer.id = 'personality-pagination';
-            
-            // 创建人格页面
-            let firstPage = true;
-            const filters = this.appState.get('filters.personalities') || new Map();
-            
-            selectedSinners.forEach((sinner, sinnerIndex) => {
-                // 创建页面容器
-                const pageDiv = document.createElement('div');
-                pageDiv.className = 'personality-page';
-                pageDiv.dataset.sinnerId = sinner.id;
-                if (firstPage) {
-                    pageDiv.classList.add('active');
-                    firstPage = false;
-                }
-                
-                // 创建页面标题
-                const pageTitle = document.createElement('h4');
-                pageTitle.className = 'settings-section-title';
-                pageTitle.innerHTML = `<i class="fas fa-user"></i> ${sinner.name}`;
-                pageDiv.appendChild(pageTitle);
-                
-                // 创建页面控制按钮
-                const pageControlDiv = document.createElement('div');
-                pageControlDiv.className = 'filter-controls personality-page-controls';
-                
-                const pageSelectAllBtn = document.createElement('button');
-                pageSelectAllBtn.className = 'control-btn';
-                pageSelectAllBtn.textContent = '全�?;
-                pageSelectAllBtn.addEventListener('click', () => this.selectSinnerPersonalities(sinner.id));
-                
-                const pageDeselectAllBtn = document.createElement('button');
-                pageDeselectAllBtn.className = 'control-btn';
-                pageDeselectAllBtn.textContent = '全不�?;
-                pageDeselectAllBtn.addEventListener('click', () => this.deselectSinnerPersonalities(sinner.id));
-                
-                const pageInvertBtn = document.createElement('button');
-                pageInvertBtn.className = 'control-btn';
-                pageInvertBtn.textContent = '反�?;
-                pageInvertBtn.addEventListener('click', () => this.invertSinnerPersonalities(sinner.id));
-                
-                pageControlDiv.appendChild(pageSelectAllBtn);
-                pageControlDiv.appendChild(pageDeselectAllBtn);
-                pageControlDiv.appendChild(pageInvertBtn);
-                pageDiv.appendChild(pageControlDiv);
-                
-                // 创建人格网格
-                const personalityGrid = document.createElement('div');
-                personalityGrid.className = 'personality-settings-grid';
-                
-                sinner.personalities.forEach((persona, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'personality-setting-card';
-                    
-                    const avatar = document.createElement('img');
-                    avatar.className = 'personality-avatar';
-                    if (persona.avatar) {
-                        avatar.src = persona.avatar;
-                        avatar.alt = persona.name;
-                        avatar.onerror = function() {
-                            this.textContent = '?';
-                            this.classList.add('avatar-placeholder');
-                        };
-                    } else {
-                        avatar.textContent = '?';
-                        avatar.classList.add('avatar-placeholder');
-                    }
-                    
-                    const name = document.createElement('div');
-                    name.className = 'personality-name';
-                    name.textContent = persona.name;
-                    
-                    const toggle = document.createElement('label');
-                    toggle.className = 'personality-toggle';
-                    
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.checked = filters.get(sinner.id)?.get(index) ?? true;
-                    checkbox.addEventListener('change', (e) => {
-                        this.updatePersonalityFilter(sinner.id, index, e.target.checked);
-                    });
-                    
-                    const toggleText = document.createElement('span');
-                    toggleText.textContent = '启用';
-                    
-                    toggle.appendChild(checkbox);
-                    toggle.appendChild(toggleText);
-                    
-                    card.appendChild(avatar);
-                    card.appendChild(name);
-                    card.appendChild(toggle);
-                    
-                    personalityGrid.appendChild(card);
-                });
-                
-                pageDiv.appendChild(personalityGrid);
-                this.settingsContainer.appendChild(pageDiv);
-                
-                // 创建分页按钮
-                const pageBtn = document.createElement('button');
-                pageBtn.className = 'page-btn';
-                pageBtn.textContent = sinnerIndex + 1;
-                pageBtn.title = sinner.name;
-                pageBtn.dataset.sinnerId = sinner.id;
-                if (sinnerIndex === 0) {
-                    pageBtn.classList.add('active');
-                }
-                pageBtn.addEventListener('click', (e) => {
-                    // 切换页面
-                    document.querySelectorAll('.personality-page').forEach(page => {
-                        page.classList.remove('active');
-                    });
-                    document.querySelectorAll('.page-btn').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    
-                    const targetSinnerId = e.target.dataset.sinnerId;
-                    const targetPage = document.querySelector(`.personality-page[data-sinner-id="${targetSinnerId}"]`);
-                    if (targetPage) {
-                        targetPage.classList.add('active');
-                    }
-                    e.target.classList.add('active');
-                });
-                
-                paginationContainer.appendChild(pageBtn);
+            tabBtn.addEventListener('click', () => {
+                this.switchTab(sinner.id);
             });
             
-            this.settingsContainer.appendChild(paginationContainer);
-            this.logger.debug('人格设置UI已创�?);
-        } catch (error) {
-            this.logger.error('创建人格设置UI失败', error);
-            throw error;
+            tabNav.appendChild(tabBtn);
+            
+            // 创建标签页内容
+            const tabPane = document.createElement('div');
+            tabPane.className = 'personality-tab-pane';
+            if (index === 0) tabPane.classList.add('active');
+            tabPane.dataset.sinnerId = sinner.id;
+            
+            const section = this.createSinnerSection(sinner);
+            tabPane.appendChild(section);
+            
+            tabContent.appendChild(tabPane);
+        });
+        
+        this.dom.personalitySettingsContainer.innerHTML = '';
+        this.dom.personalitySettingsContainer.appendChild(tabNav);
+        this.dom.personalitySettingsContainer.appendChild(tabContent);
+        
+        // 确保第一个标签页被激活（修复初始显示bug）
+        const firstSinner = enabledSinners[0];
+        if (firstSinner) {
+            this.switchTab(firstSinner.id);
         }
+        
+        logger.info(`[SettingsController] 人格设置UI创建完成，共 ${enabledSinners.length} 个罪人`);
     }
     
     /**
-     * 获取选中的罪�?
-     * @returns {Array} 选中的罪人数据数�?
+     * 切换标签页
+     * @param {string} sinnerId - 罪人ID
      */
-    getSelectedSinners() {
-        const selectedIds = this.appState.get('filters.sinners') || new Set();
-        return sinnerData.filter(sinner => selectedIds.has(sinner.id));
-    }
-    
-    /**
-     * 验证设置
-     * @returns {boolean} 设置是否有效
-     */
-    validateSettings() {
-        try {
-            const filters = this.appState.get('filters.personalities') || new Map();
-            
-            if (filters.size === 0) {
-                this.logger.warn('没有人格过滤设置');
-                return false;
+    switchTab(sinnerId) {
+        // 确保sinnerId是字符串，用于data-attribute比较
+        const targetId = String(sinnerId);
+        
+        // 更新按钮状态
+        const buttons = this.dom.personalitySettingsContainer.querySelectorAll('.personality-tab-btn');
+        buttons.forEach(btn => {
+            if (btn.dataset.sinnerId === targetId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
             }
+        });
+        
+        // 更新内容显示
+        const panes = this.dom.personalitySettingsContainer.querySelectorAll('.personality-tab-pane');
+        panes.forEach(pane => {
+            if (pane.dataset.sinnerId === targetId) {
+                pane.classList.add('active');
+            } else {
+                pane.classList.remove('active');
+            }
+        });
+        
+        logger.debug(`[SettingsController] 切换到罪人 ${targetId} 的人格标签页`);
+    }
+    
+    /**
+     * 创建单个罪人的设置区块
+     * @param {Object} sinner - 罪人数据
+     * @returns {HTMLElement} 设置区块元素
+     */
+    createSinnerSection(sinner) {
+        const section = document.createElement('div');
+        section.className = 'settings-section';
+        section.dataset.sinnerId = sinner.id;
+        
+        // 标题行
+        const header = document.createElement('div');
+        header.className = 'settings-header';
+        
+        const title = document.createElement('h3');
+        title.textContent = sinner.name;
+        title.style.color = sinner.color || '#fff';
+        
+        const actions = document.createElement('div');
+        actions.className = 'settings-actions';
+        
+        const selectAllBtn = this.createButton('全选', () => {
+            this.selectAllPersonalities(sinner.id);
+        });
+        
+        const deselectAllBtn = this.createButton('取消全选', () => {
+            this.deselectAllPersonalities(sinner.id);
+        });
+        
+        const invertBtn = this.createButton('反选', () => {
+            this.invertPersonalities(sinner.id);
+        });
+        
+        actions.appendChild(selectAllBtn);
+        actions.appendChild(deselectAllBtn);
+        actions.appendChild(invertBtn);
+        
+        header.appendChild(title);
+        header.appendChild(actions);
+        
+        // 人格列表
+        const personaList = document.createElement('div');
+        personaList.className = 'personality-list';
+        
+        sinner.personalities.forEach((persona, index) => {
+            const item = this.createPersonalityItem(sinner.id, persona, index);
+            personaList.appendChild(item);
+        });
+        
+        section.appendChild(header);
+        section.appendChild(personaList);
+        
+        return section;
+    }
+    
+    /**
+     * 创建人格设置项
+     * @param {string} sinnerId - 罪人ID
+     * @param {Object} persona - 人格数据
+     * @param {number} index - 人格索引
+     * @returns {HTMLElement} 设置项元素
+     */
+    createPersonalityItem(sinnerId, persona, index) {
+        const item = document.createElement('div');
+        item.className = 'personality-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `persona-${sinnerId}-${index}`;
+        checkbox.checked = appState.isPersonalityEnabled(sinnerId, index);
+        checkbox.dataset.sinnerId = sinnerId;
+        checkbox.dataset.personaIndex = index;
+        
+        checkbox.addEventListener('change', (e) => {
+            this.togglePersonalityCheckbox(sinnerId, index, e.target.checked);
+        });
+        
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        
+        // 添加头像图片
+        const avatar = document.createElement('img');
+        avatar.src = persona.avatar;
+        avatar.alt = persona.name;
+        avatar.className = 'personality-avatar';
+        avatar.onerror = () => {
+            // 如果图片加载失败，使用占位符
+            avatar.style.display = 'none';
+            const placeholder = document.createElement('div');
+            placeholder.className = 'personality-avatar-placeholder';
+            placeholder.textContent = '?';
+            label.insertBefore(placeholder, label.firstChild);
+        };
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'personality-name';
+        nameSpan.textContent = persona.name;
+        
+        label.appendChild(avatar);
+        label.appendChild(nameSpan);
+        
+        item.appendChild(checkbox);
+        item.appendChild(label);
+        
+        return item;
+    }
+    
+    /**
+     * 创建按钮
+     * @param {string} text - 按钮文本
+     * @param {Function} onClick - 点击回调
+     * @returns {HTMLElement} 按钮元素
+     */
+    createButton(text, onClick) {
+        const button = document.createElement('button');
+        button.className = 'settings-btn';
+        button.textContent = text;
+        button.addEventListener('click', onClick);
+        return button;
+    }
+    
+    /**
+     * 切换人格复选框
+     * @param {string} sinnerId - 罪人ID
+     * @param {number} personaIndex - 人格索引
+     * @param {boolean} checked - 是否选中
+     */
+    togglePersonalityCheckbox(sinnerId, personaIndex, checked) {
+        appState.togglePersonalityFilter(sinnerId, personaIndex, checked);
+        
+        eventBus.emit(GameEvents.PERSONALITY_TOGGLED, {
+            sinnerId,
+            personaIndex,
+            enabled: checked
+        });
+        
+        logger.debug(`[SettingsController] 人格 ${sinnerId}[${personaIndex}] ${checked ? '启用' : '禁用'}`);
+    }
+    
+    /**
+     * 全选某个罪人的所有人格
+     * @param {string} sinnerId - 罪人ID
+     */
+    selectAllPersonalities(sinnerId) {
+        const sinner = sinnerData.find(s => s.id === sinnerId);
+        if (!sinner) return;
+        
+        sinner.personalities.forEach((persona, index) => {
+            appState.togglePersonalityFilter(sinnerId, index, true);
             
-            // 检查是否至少有一个人格被选中
-            let hasAnySelected = false;
-            filters.forEach(sinnerFilters => {
-                sinnerFilters.forEach(isChecked => {
-                    if (isChecked) hasAnySelected = true;
-                });
+            // 同步UI
+            const checkbox = document.getElementById(`persona-${sinnerId}-${index}`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        
+        eventBus.emit(GameEvents.SETTINGS_CHANGED, {
+            action: 'select_all',
+            sinnerId
+        });
+        
+        logger.info(`[SettingsController] 罪人 ${sinnerId} 全选人格`);
+    }
+    
+    /**
+     * 取消全选某个罪人的所有人格
+     * @param {string} sinnerId - 罪人ID
+     */
+    deselectAllPersonalities(sinnerId) {
+        const sinner = sinnerData.find(s => s.id === sinnerId);
+        if (!sinner) return;
+        
+        sinner.personalities.forEach((persona, index) => {
+            appState.togglePersonalityFilter(sinnerId, index, false);
+            
+            // 同步UI
+            const checkbox = document.getElementById(`persona-${sinnerId}-${index}`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+        
+        eventBus.emit(GameEvents.SETTINGS_CHANGED, {
+            action: 'deselect_all',
+            sinnerId
+        });
+        
+        logger.info(`[SettingsController] 罪人 ${sinnerId} 取消全选人格`);
+    }
+    
+    /**
+     * 反选某个罪人的人格
+     * @param {string} sinnerId - 罪人ID
+     */
+    invertPersonalities(sinnerId) {
+        const sinner = sinnerData.find(s => s.id === sinnerId);
+        if (!sinner) return;
+        
+        sinner.personalities.forEach((persona, index) => {
+            const currentState = appState.isPersonalityEnabled(sinnerId, index);
+            appState.togglePersonalityFilter(sinnerId, index, !currentState);
+            
+            // 同步UI
+            const checkbox = document.getElementById(`persona-${sinnerId}-${index}`);
+            if (checkbox) {
+                checkbox.checked = !currentState;
+            }
+        });
+        
+        eventBus.emit(GameEvents.SETTINGS_CHANGED, {
+            action: 'invert',
+            sinnerId
+        });
+        
+        logger.info(`[SettingsController] 罪人 ${sinnerId} 反选人格`);
+    }
+    
+    /**
+     * 保存设置
+     */
+    saveSettings() {
+        // AppState会自动持久化到localStorage
+        eventBus.emit(GameEvents.PERSONALITY_SAVED);
+        
+        logger.info('[SettingsController] 设置已保存');
+        
+        // 显示成功提示
+        this.showSaveSuccess();
+    }
+    
+    /**
+     * 重置设置
+     */
+    resetSettings() {
+        sinnerData.forEach(sinner => {
+            this.selectAllPersonalities(sinner.id);
+        });
+        
+        logger.info('[SettingsController] 设置已重置');
+    }
+
+    /**
+     * 全选/取消所有人格（跨所有罪人）
+     * @param {boolean} enabled - 是否启用
+     */
+    toggleAllPersonalities(enabled) {
+        sinnerData.forEach(sinner => {
+            sinner.personalities.forEach((persona, index) => {
+                appState.togglePersonalityFilter(sinner.id, index, enabled);
+                const checkbox = document.getElementById(`persona-${sinner.id}-${index}`);
+                if (checkbox) {
+                    checkbox.checked = enabled;
+                }
             });
-            
-            if (!hasAnySelected) {
-                this.logger.warn('没有选中任何人格');
-                return false;
-            }
-            
-            return true;
-        } catch (error) {
-            this.logger.error('验证设置失败', error);
-            return false;
-        }
-    }
-    
-    /**
-     * 计算总人格数
-     * @private
-     * @returns {number}
-     */
-    getTotalPersonalities() {
-        return sinnerData.reduce((total, sinner) => {
-            return total + (sinner.personalities?.length || 0);
-        }, 0);
-    }
-    
-    /**
-     * 更新所有UI复选框
-     * @private
-     * @param {Map} filters - 过滤状态映�?
-     */
-    updateUICheckboxes(filters) {
-        const checkboxes = this.settingsContainer?.querySelectorAll('input[type="checkbox"]');
-        if (!checkboxes) return;
-        
-        checkboxes.forEach(checkbox => {
-            const sinnerId = parseInt(checkbox.dataset.sinnerId);
-            const personaIndex = parseInt(checkbox.dataset.personaIndex);
-            
-            checkbox.checked = filters.get(sinnerId)?.get(personaIndex) ?? true;
         });
-    }
-    
-    /**
-     * 更新特定罪人的UI复选框
-     * @private
-     * @param {number} sinnerId - 罪人ID
-     * @param {Map} filters - 过滤状态映�?
-     */
-    updateUICheckboxesBySinner(sinnerId, filters) {
-        const sinnerCheckboxes = this.settingsContainer?.querySelectorAll(
-            `input[data-sinner-id="${sinnerId}"]`
-        );
-        if (!sinnerCheckboxes) return;
-        
-        sinnerCheckboxes.forEach(checkbox => {
-            const personaIndex = parseInt(checkbox.dataset.personaIndex);
-            checkbox.checked = filters.get(sinnerId)?.get(personaIndex) ?? true;
+
+        eventBus.emit(GameEvents.SETTINGS_CHANGED, {
+            action: enabled ? 'select_all_global' : 'deselect_all_global'
         });
+
+        logger.info(`[SettingsController] 所有人格${enabled ? '全选' : '取消全选'}`);
+    }
+
+    /**
+     * 反选所有人格（跨所有罪人）
+     */
+    invertAllPersonalities() {
+        sinnerData.forEach(sinner => {
+            sinner.personalities.forEach((persona, index) => {
+                const currentState = appState.isPersonalityEnabled(sinner.id, index);
+                appState.togglePersonalityFilter(sinner.id, index, !currentState);
+                const checkbox = document.getElementById(`persona-${sinner.id}-${index}`);
+                if (checkbox) {
+                    checkbox.checked = !currentState;
+                }
+            });
+        });
+
+        eventBus.emit(GameEvents.SETTINGS_CHANGED, {
+            action: 'invert_global'
+        });
+
+        logger.info('[SettingsController] 所有人格反选');
     }
     
     /**
-     * 清理方法
+     * 显示保存成功提示
      */
-    destroy() {
-        // 清除所有事件监听器和引�?
-        if (this.settingsContainer) {
-            this.settingsContainer.innerHTML = '';
-        }
-        this.logger.debug('SettingsController已销�?);
+    showSaveSuccess() {
+        // 简单的提示实现
+        const message = document.createElement('div');
+        message.className = 'save-success-message';
+        message.textContent = '设置已保存';
+        document.body.appendChild(message);
+        
+        setTimeout(() => {
+            message.classList.add('fade-out');
+            setTimeout(() => message.remove(), 300);
+        }, 2000);
+    }
+    
+    /**
+     * 获取当前设置
+     * @returns {Object} 设置对象
+     */
+    getSettings() {
+        return {
+            personality: appState.get('settings.personality'),
+            theme: appState.get('settings.theme'),
+            language: appState.get('settings.language')
+        };
     }
 }
 
-export default SettingsController;
-
-
-
+// 导出单例
+export const settingsController = new SettingsController();

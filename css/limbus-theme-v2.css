@@ -322,10 +322,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 60px;
+    height: 64px;
     border-bottom: 1px solid var(--lc-border);
     font-size: 16px;
     color: var(--lc-text-secondary);
+}
+
+.scroll-item-content .avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 6px;
 }
 
 .scroll-item:last-child {
@@ -512,11 +519,12 @@ body {
     height: 80px;
     background: var(--lc-bg-secondary);
     border: 2px dashed var(--lc-border-light);
-    border-radius: 50%;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 16px;
+    aspect-ratio: 1 / 1;
 }
 
 .result-empty-icon svg {
@@ -573,13 +581,14 @@ body {
 
 .result-sinner-avatar,
 .result-persona-avatar {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     margin: 0 auto 16px;
-    border-radius: 50%;
+    border-radius: 8px;
     overflow: hidden;
     background: var(--lc-bg);
     border: 3px solid var(--lc-border);
+    aspect-ratio: 1 / 1;
 }
 
 .result-sinner-avatar {
@@ -656,8 +665,9 @@ body {
     
     .result-sinner-avatar,
     .result-persona-avatar {
-        width: 60px;
-        height: 60px;
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
     }
     
     .avatar-fallback svg {

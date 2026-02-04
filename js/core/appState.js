@@ -39,8 +39,8 @@ class AppState {
             
             // 过滤器状态
             filters: {
-                sinner: new Set(),                // 启用的罪人ID集合
-                persona: new Map()                // 启用的人格 Map<sinnerId, Set<personaIndex>>
+                sinners: {},                      // 启用的罪人ID对象 {sinnerId: true/false}
+                personalities: {}                 // 启用的人格 {sinnerId: {index: true/false}}
             },
             
             // 设置状态
@@ -135,7 +135,7 @@ class AppState {
      * AppState.set('timer.elapsedSeconds', 120, { reason: 'timer:tick' })
      */
     set(path, value, options = {}) {
-        const { notify = true, reason = '' } = options;
+        const { notify = true, reason = '', markUnsaved = true } = options;
         
         const keys = path.split('.');
         const lastKey = keys.pop();
@@ -156,9 +156,12 @@ class AppState {
         // 设置新值
         obj[lastKey] = value;
         
-        // 标记为有未保存的更改
-        if (path !== 'timer.elapsedSeconds') {
-            this._state.app.hasUnsavedChanges = true;
+        // 标记为有未保存的更改（仅针对筛选和设置）
+        if (markUnsaved && path !== 'app.hasUnsavedChanges') {
+            const shouldMarkUnsaved = path.startsWith('filters.') || path.startsWith('settings.');
+            if (shouldMarkUnsaved) {
+                this._state.app.hasUnsavedChanges = true;
+            }
         }
         
         // 保存到storage
@@ -191,6 +194,50 @@ class AppState {
     }
     
     // ========== 游戏状态便捷方法 ==========
+    
+    /**
+     * 切换罪人筛选状态
+     * @param {string} sinnerId - 罪人ID
+     * @param {boolean} enabled - 是否启用
+     */
+    toggleSinnerFilter(sinnerId, enabled) {
+        const filters = this.get('filters.sinners') || {};
+        filters[sinnerId] = enabled;
+        this.set('filters.sinners', filters, { reason: 'filter:sinner:toggle' });
+    }
+    
+    /**
+     * 切换人格筛选状态
+     * @param {string} sinnerId - 罪人ID
+     * @param {number} personaIndex - 人格索引
+     * @param {boolean} enabled - 是否启用
+     */
+    togglePersonalityFilter(sinnerId, personaIndex, enabled) {
+        const path = `filters.personalities.${sinnerId}.${personaIndex}`;
+        this.set(path, enabled, { reason: 'filter:personality:toggle' });
+    }
+    
+    /**
+     * 检查罪人是否被启用
+     * @param {string} sinnerId - 罪人ID
+     * @returns {boolean}
+     */
+    isSinnerEnabled(sinnerId) {
+        const filters = this.get('filters.sinners') || {};
+        return filters[sinnerId] !== false; // 默认启用
+    }
+    
+    /**
+     * 检查人格是否被启用
+     * @param {string} sinnerId - 罪人ID
+     * @param {number} personaIndex - 人格索引
+     * @returns {boolean}
+     */
+    isPersonalityEnabled(sinnerId, personaIndex) {
+        const path = `filters.personalities.${sinnerId}.${personaIndex}`;
+        const value = this.get(path);
+        return value !== false; // 默认启用
+    }
     
     /**
      * 设置选中的罪人
@@ -249,59 +296,7 @@ class AppState {
     }
     
     // ========== 过滤器便捷方法 ==========
-    
-    /**
-     * 设置启用的罪人集合
-     * @param {Set|Array} sinnerIds - 罪人ID集合
-     */
-    setSinnerFilters(sinnerIds) {
-        const set = sinnerIds instanceof Set ? sinnerIds : new Set(sinnerIds);
-        this.set('filters.sinner', set, { reason: 'filter:sinner-changed' });
-    }
-    
-    /**
-     * 获取启用的罪人集合
-     * @returns {Set} 罪人ID集合
-     */
-    getSinnerFilters() {
-        return this.get('filters.sinner');
-    }
-    
-    /**
-     * 设置人格过滤器
-     * @param {Map} personaFilters - Map<sinnerId, Set<personaIndex>>
-     */
-    setPersonaFilters(personaFilters) {
-        this.set('filters.persona', personaFilters, { reason: 'filter:persona-changed' });
-    }
-    
-    /**
-     * 获取人格过滤器
-     * @returns {Map} 人格过滤器Map
-     */
-    getPersonaFilters() {
-        return this.get('filters.persona');
-    }
-    
-    /**
-     * 检查罪人是否被过滤启用
-     * @param {number} sinnerId - 罪人ID
-     * @returns {boolean}
-     */
-    isSinnerEnabled(sinnerId) {
-        return this._state.filters.sinner.has(sinnerId);
-    }
-    
-    /**
-     * 检查人格是否被过滤启用
-     * @param {number} sinnerId - 罪人ID
-     * @param {number} personaIndex - 人格索引
-     * @returns {boolean}
-     */
-    isPersonaEnabled(sinnerId, personaIndex) {
-        const personas = this._state.filters.persona.get(sinnerId);
-        return personas ? personas.has(personaIndex) : false;
-    }
+    // （新的filter方法已在行195-240定义）
     
     // ========== 计时器便捷方法 ==========
     
@@ -485,8 +480,8 @@ class AppState {
         try {
             const persistData = {
                 filters: {
-                    sinner: Array.from(this._state.filters.sinner),
-                    persona: Array.from(this._state.filters.persona.entries())
+                    sinners: this._state.filters.sinners,
+                    personalities: this._state.filters.personalities
                 },
                 settings: {
                     personality: Array.from(this._state.settings.personality.entries())
@@ -513,10 +508,10 @@ class AppState {
             
             const data = JSON.parse(savedData);
             
-            // 恢复过滤器
+            // 恢复过滤器（对象格式）
             if (data.filters) {
-                this._state.filters.sinner = new Set(data.filters.sinner || []);
-                this._state.filters.persona = new Map(data.filters.persona || []);
+                this._state.filters.sinners = data.filters.sinners || {};
+                this._state.filters.personalities = data.filters.personalities || {};
             }
             
             // 恢复设置
@@ -547,7 +542,7 @@ class AppState {
         this._state = {
             app: { currentPage: 'main', hasUnsavedChanges: false, isInitialized: false },
             game: { selectedSinner: null, selectedPersona: null, isScrolling: false, easterEggTriggered: null },
-            filters: { sinner: new Set(), persona: new Map() },
+            filters: { sinners: {}, personalities: {} },
             settings: { personality: new Map(), theme: 'dark', language: 'zh-cn' },
             timer: { isRunning: false, elapsedSeconds: 0, totalSeconds: 0, startTime: null, pausedTime: null },
             ranking: { localRecords: [], globalRecords: [], lastUpdateTime: null }

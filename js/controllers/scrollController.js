@@ -1,658 +1,852 @@
 /**
- * ScrollController - 滚动系统控制�?
- * 负责罪人和人格的滚动列表管理、动画、高亮和选择
+ * 滚动控制器 - 管理罪人和人格的滚动动画和选择
  * 
- * 架构�?
- * - 依赖注入：appState, eventBus, logger
- * - 状态管理：通过appState管理所有滚动状�?
- * - 事件驱动：通过eventBus与其他模块通信
- * - 零全局变量：不使用window.*
+ * 职责：
+ * - 创建滚动列表UI
+ * - 管理滚动动画
+ * - 处理滚动开始/停止
+ * - 更新选中项高亮显示
  * 
- * 关键保护�?
- * - highlightSelectedItem函数保持原有逻辑（已修复，不能修改）
- * - 支持1个和12个罪人的边界情况
+ * @module ScrollController
  */
 
+import { appState } from '../core/appState.js';
+import { eventBus, GameEvents } from '../core/eventBus.js';
+import { logger } from '../core/logger.js';
 import { Config } from '../../data/config.js';
-import { sinnerData } from '../../data/characters.js';
 import { secureRandInt } from '../../data/utils/helpers.js';
 
+const easterEggConfig = {
+    2: { // 浮士德 (Faust)
+        '黑兽-卯魁首': 'assets/videos/faust_mao_kui_shou.mp4'
+    },
+    5: { // 默尔索 (Meursault)
+        '拇指东部指挥官IIII': 'assets/videos/meursault_thumbs.mp4'
+    },
+    6: { // 鸿璐 (Hong Lu)
+        '鸿园的君主': 'assets/videos/Hong_Lu_Hong_Yuan_The_King.mp4'
+    },
+    9: { // 罗佳 (Rodion)
+        '脑叶公司E.G.O:泪锋之剑': 'assets/videos/rodion_tear_sword.mp4'
+    }
+};
+
 export class ScrollController {
-    constructor(appState, eventBus, logger, modal) {
-        this.appState = appState;
-        this.eventBus = eventBus;
-        this.logger = logger;
-        this.modal = modal;
+    constructor() {
+        this.dom = {
+            sinnerScrollContainer: null,
+            personaScrollContainer: null,
+            sinnerScrollList: null,
+            personaScrollList: null,
+            startSinnerButton: null,
+            stopSinnerButton: null,
+            startPersonaButton: null,
+            stopPersonaButton: null,
+            sinnerEmptyEl: null,
+            personaEmptyEl: null,
+            selectedSinnerEl: null,
+            selectedPersonaEl: null,
+            resultDisplayEl: null,
+            resultFinalEl: null,
+            resultSinnerImg: null,
+            resultSinnerFallback: null,
+            resultPersonaImg: null,
+            resultPersonaFallback: null
+        };
         
-        // DOM元素（延迟初始化�?
-        this.sinnerScroll = null;
-        this.personaScroll = null;
-        this.sinnerStartBtn = null;
-        this.sinnerStopBtn = null;
-        this.personaStartBtn = null;
-        this.personaStopBtn = null;
-        this.selectedSinnerEl = null;
-        this.selectedPersonaEl = null;
+        this.scrollIntervals = {
+            sinner: null,
+            persona: null
+        };
         
-        // 滚动状�?
-        this.sinnerScrollInterval = null;
-        this.personaScrollInterval = null;
-        this.isSinnerScrolling = false;
-        this.isPersonaScrolling = false;
-        
-        // 配置
+        this.currentSinnerList = [];
+        this.currentPersonaList = [];
+
+        this.sinnerOffset = 0;
+        this.personaOffset = 0;
         this.itemHeight = Config.itemHeight || 50;
         
-        // 绑定方法的this上下�?
-        this.startSinnerScroll = this.startSinnerScroll.bind(this);
-        this.stopSinnerScroll = this.stopSinnerScroll.bind(this);
-        this.startPersonaScroll = this.startPersonaScroll.bind(this);
-        this.stopPersonaScroll = this.stopPersonaScroll.bind(this);
+        this.initialized = false;
         
-        this.logger.debug('ScrollController已初始化');
+        // 监听筛选变化事件
+        this._setupEventListeners();
     }
     
     /**
-     * 初始化ScrollController
-     * @param {Object} domElements - 包含所有必需DOM元素引用的对�?
+     * 设置事件监听
+     * @private
+     */
+    _setupEventListeners() {
+        // 监听筛选变化
+        eventBus.subscribe(GameEvents.FILTER_CHANGED, (data) => {
+            if (data.filteredData) {
+                logger.debug('[ScrollController] 筛选已变化，更新罪人列表');
+                this.createSinnerScrollList(data.filteredData);
+                
+                // 清空人格列表（因为筛选变化后需要重新选择罪人）
+                this.clearPersonaList();
+            }
+        });
+        
+        // 监听罪人选择事件
+        eventBus.subscribe(GameEvents.SINNER_SELECTED, (data) => {
+            if (data.sinner && data.sinner.personalities) {
+                logger.debug('[ScrollController] 罪人已选择，更新人格列表');
+                this.createPersonaScrollList(data.sinner.personalities);
+            }
+        });
+    }
+    
+    /**
+     * 初始化DOM元素
+     * @param {Object} domElements - DOM元素映射
      */
     initDOM(domElements) {
-        try {
-            this.sinnerScroll = domElements.sinnerScroll || document.getElementById('sinner-scroll');
-            this.personaScroll = domElements.personaScroll || document.getElementById('persona-scroll');
-            this.sinnerStartBtn = domElements.sinnerStartBtn || document.getElementById('sinner-start-btn');
-            this.sinnerStopBtn = domElements.sinnerStopBtn || document.getElementById('sinner-stop-btn');
-            this.personaStartBtn = domElements.personaStartBtn || document.getElementById('persona-start-btn');
-            this.personaStopBtn = domElements.personaStopBtn || document.getElementById('persona-stop-btn');
-            this.selectedSinnerEl = domElements.selectedSinnerEl || document.getElementById('selected-sinner');
-            this.selectedPersonaEl = domElements.selectedPersonaEl || document.getElementById('selected-persona');
-            
-            // 绑定事件监听�?
-            this.sinnerStartBtn?.addEventListener('click', this.startSinnerScroll);
-            this.sinnerStopBtn?.addEventListener('click', this.stopSinnerScroll);
-            this.personaStartBtn?.addEventListener('click', this.startPersonaScroll);
-            this.personaStopBtn?.addEventListener('click', this.stopPersonaScroll);
-            
-            this.logger.debug('ScrollController DOM初始化完�?);
-        } catch (error) {
-            this.logger.error('ScrollController DOM初始化失�?, error);
-            throw error;
-        }
+        Object.assign(this.dom, domElements);
+        this.initialized = true;
+        this.itemHeight = Config.itemHeight || this.itemHeight;
+        logger.info('[ScrollController] DOM初始化完成');
     }
     
     /**
      * 创建罪人滚动列表
-     * @param {Array} sinnerItems - 罪人数据数组
+     * @param {Array} sinnerList - 罪人数据数组
      */
-    createSinnerScrollList(sinnerItems) {
-        try {
-            if (!sinnerItems || sinnerItems.length === 0) {
-                this.logger.warn('createSinnerScrollList: 罪人列表为空');
-                return;
-            }
-            
-            // 清空滚动容器
-            if (this.sinnerScroll) {
-                this.sinnerScroll.innerHTML = '';
-            }
-            
-            // 重置选择状�?
-            this.appState.set('game.selectedSinner', null);
-            this.appState.set('game.selectedPersona', null);
-            
-            // 重置显示文本
-            if (this.selectedSinnerEl) this.selectedSinnerEl.textContent = '未选择';
-            if (this.selectedPersonaEl) this.selectedPersonaEl.textContent = '未选择';
-            
-            // 重置空状态提�?
-            this.hideEmptyStates();
-            
-            // 计算显示行数 (最�?行，最�?�?
-            const visibleRows = Math.min(Math.max(sinnerItems.length, 3), 5);
-            const containerHeight = visibleRows * this.itemHeight;
-            if (this.sinnerScroll?.parentElement) {
-                this.sinnerScroll.parentElement.style.height = `${containerHeight}px`;
-            }
-            
-            // 禁用人格选择器（在罪人选定后才启用�?
-            if (this.personaStartBtn) {
-                this.personaStartBtn.disabled = sinnerItems.length === 1;
-            }
-            
-            // 创建滚动项目（重�?0次用于循环滚动）
-            const itemCount = sinnerItems.length * 10;
-            for (let i = 0; i < itemCount; i++) {
-                const item = document.createElement('div');
-                item.className = 'scroll-item';
-                item.style.height = `${this.itemHeight}px`;
-                item.dataset.originalIndex = i % sinnerItems.length;
-                
-                const content = document.createElement('div');
-                content.className = 'scroll-item-content';
-                
-                // 创建头像
-                const avatarElement = document.createElement('img');
-                avatarElement.className = 'avatar-placeholder';
-                avatarElement.style.width = '30px';
-                avatarElement.style.height = '30px';
-                
-                const currentItem = sinnerItems[i % sinnerItems.length];
-                const sinnerName = typeof currentItem === 'string' ? currentItem : currentItem.name;
-                const sinnerInfo = typeof currentItem === 'string'
-                    ? sinnerData.find(s => s.name === currentItem)
-                    : currentItem;
-                
-                if (sinnerInfo?.avatar) {
-                    avatarElement.src = sinnerInfo.avatar;
-                    avatarElement.alt = sinnerInfo.name;
-                    avatarElement.onerror = () => this.handleImageError(avatarElement);
-                } else {
-                    avatarElement.textContent = '?';
-                }
-                
-                content.appendChild(avatarElement);
-                
-                const textSpan = document.createElement('span');
-                textSpan.textContent = sinnerName;
-                content.appendChild(textSpan);
-                
-                item.appendChild(content);
-                this.sinnerScroll.appendChild(item);
-            }
-            
-            // 设置滚动容器高度
-            this.sinnerScroll.style.height = `${itemCount * this.itemHeight}px`;
-            
-            // 如果只有一个罪人，直接高亮显示并自动选中
-            if (sinnerItems.length === 1) {
-                setTimeout(() => {
-                    this.highlightSelectedItem(this.sinnerScroll, 0);
-                    
-                    const sinner = sinnerItems[0];
-                    this.appState.set('game.selectedSinner', sinner);
-                    
-                    if (this.selectedSinnerEl) {
-                        this.selectedSinnerEl.textContent = typeof sinner === 'string' ? sinner : sinner.name;
-                    }
-                    
-                    // 隐藏罪人空状�?
-                    const sinnerEmpty = document.getElementById('sinner-empty');
-                    if (sinnerEmpty) {
-                        sinnerEmpty.classList.add('hidden');
-                    }
-                    
-                    // 更新人格列表
-                    const personalities = sinner.personalities || [];
-                    this.createPersonaScrollList(personalities);
-                    
-                    // 发出事件
-                    this.eventBus.emit('SINNER_SELECTED', {
-                        sinner,
-                        isAutoSelected: true,
-                        itemsLength: sinnerItems.length
-                    });
-                }, 100);
-            }
-            
-            this.updateResultDisplay();
-            this.logger.debug(`罪人滚动列表已创建，�?{sinnerItems.length}项`);
-        } catch (error) {
-            this.logger.error('创建罪人滚动列表失败', error);
-            throw error;
+    createSinnerScrollList(sinnerList) {
+        if (!this.dom.sinnerScrollList || !this.dom.sinnerScrollContainer) {
+            logger.warn('[ScrollController] 罪人滚动容器未找到');
+            return;
         }
+        
+        this.currentSinnerList = Array.isArray(sinnerList) ? sinnerList : [];
+        this.dom.sinnerScrollList.innerHTML = '';
+        this.sinnerOffset = 0;
+        this.dom.sinnerScrollList.style.transition = 'none';
+        this.dom.sinnerScrollList.style.transform = 'translateY(0px)';
+        this.clearHighlight(this.dom.sinnerScrollList);
+        
+        // 重置选择状态
+        appState.setSinner(null);
+        appState.setPersona(null);
+        window.currentSelectedSinner = null;
+        window.currentSelectedPersona = null;
+        if (this.dom.selectedSinnerEl) this.dom.selectedSinnerEl.textContent = '未选择';
+        if (this.dom.selectedPersonaEl) this.dom.selectedPersonaEl.textContent = '未选择';
+        this.resetResultDisplay();
+        
+        if (!this.currentSinnerList.length) {
+            if (this.dom.sinnerEmptyEl) this.dom.sinnerEmptyEl.classList.remove('hidden');
+            this.dom.sinnerScrollList.innerHTML = '';
+            if (this.dom.startSinnerButton) this.dom.startSinnerButton.disabled = true;
+            if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = true;
+            logger.debug('[ScrollController] 无可用罪人');
+            return;
+        }
+        
+        if (this.dom.sinnerEmptyEl) this.dom.sinnerEmptyEl.classList.add('hidden');
+        
+        const visibleRows = Math.min(
+            Math.max(this.currentSinnerList.length, Config.minVisibleRows || 1),
+            Config.maxVisibleRows || 5
+        );
+        this.dom.sinnerScrollContainer.style.height = `${visibleRows * this.itemHeight}px`;
+        
+        const repeat = Config.totalHeightMultiplier || 5;
+        const itemsToCreate = this.currentSinnerList.length * repeat;
+        for (let i = 0; i < itemsToCreate; i++) {
+            const sinner = this.currentSinnerList[i % this.currentSinnerList.length];
+            const item = this.createScrollItem(sinner, 'sinner', i % this.currentSinnerList.length);
+            this.dom.sinnerScrollList.appendChild(item);
+        }
+        this.dom.sinnerScrollList.style.height = `${itemsToCreate * this.itemHeight}px`;
+
+        if (this.dom.startSinnerButton) {
+            this.dom.startSinnerButton.disabled = this.currentSinnerList.length <= 1;
+        }
+        if (this.dom.stopSinnerButton) {
+            this.dom.stopSinnerButton.disabled = true;
+        }
+        
+        // 只有一个罪人时自动选中
+        if (this.currentSinnerList.length === 1) {
+            setTimeout(() => {
+                this._selectSingleSinner(this.currentSinnerList[0]);
+            }, 50);
+        }
+        
+        logger.debug(`[ScrollController] 罪人滚动列表创建完成，共 ${this.currentSinnerList.length} 个罪人`);
     }
     
     /**
      * 创建人格滚动列表
-     * @param {Array} personaItems - 人格数据数组
+     * @param {Array} personaList - 人格数据数组
      */
-    createPersonaScrollList(personaItems) {
-        try {
-            if (!Array.isArray(personaItems)) {
-                this.logger.warn('createPersonaScrollList: 人格列表不是数组');
-                return;
-            }
-            
-            // 清空滚动容器
-            if (this.personaScroll) {
-                this.personaScroll.innerHTML = '';
-            }
-            
-            // 隐藏空状态提�?
-            const personaEmpty = document.getElementById('persona-empty');
-            if (personaEmpty) {
-                personaEmpty.classList.add('hidden');
-            }
-            
-            // 计算显示行数
-            const visibleRows = Math.min(Math.max(personaItems.length, 3), 5);
-            const containerHeight = visibleRows * this.itemHeight;
-            if (this.personaScroll?.parentElement) {
-                this.personaScroll.parentElement.style.height = `${containerHeight}px`;
-            }
-            
-            // 处理空列表或提示字符�?
-            if (personaItems.length === 0 || (personaItems.length === 1 && typeof personaItems[0] === 'string')) {
-                const item = document.createElement('div');
-                item.className = 'scroll-item';
-                item.style.height = `${this.itemHeight}px`;
-                
-                const content = document.createElement('div');
-                content.className = 'scroll-item-content';
-                
-                const avatarElement = document.createElement('div');
-                avatarElement.className = 'avatar-placeholder';
-                avatarElement.style.width = '30px';
-                avatarElement.style.height = '30px';
-                avatarElement.style.backgroundColor = '#ccc';
-                avatarElement.style.borderRadius = '50%';
-                avatarElement.style.display = 'flex';
-                avatarElement.style.alignItems = 'center';
-                avatarElement.style.justifyContent = 'center';
-                avatarElement.textContent = '?';
-                
-                content.appendChild(avatarElement);
-                
-                const textSpan = document.createElement('span');
-                textSpan.textContent = personaItems.length === 0 ? '请先选择罪人' : personaItems[0];
-                content.appendChild(textSpan);
-                
-                item.appendChild(content);
-                this.personaScroll.appendChild(item);
-                
-                if (personaEmpty) {
-                    personaEmpty.classList.remove('hidden');
-                }
-                
-                if (this.personaStartBtn) {
-                    this.personaStartBtn.disabled = true;
-                }
-                
-                return;
-            }
-            
-            // 启用开始按�?
-            if (this.personaStartBtn) {
-                this.personaStartBtn.disabled = false;
-            }
-            
-            // 创建滚动项目
-            const itemCount = personaItems.length * 10;
-            for (let i = 0; i < itemCount; i++) {
-                const item = document.createElement('div');
-                item.className = 'scroll-item';
-                item.style.height = `${this.itemHeight}px`;
-                item.dataset.originalIndex = i % personaItems.length;
-                
-                const content = document.createElement('div');
-                content.className = 'scroll-item-content';
-                
-                // 创建头像
-                const avatarElement = document.createElement('img');
-                avatarElement.className = 'avatar-placeholder';
-                avatarElement.style.width = '30px';
-                avatarElement.style.height = '30px';
-                
-                const currentItem = personaItems[i % personaItems.length];
-                const personaName = typeof currentItem === 'string' ? currentItem : currentItem.name;
-                const personaInfo = typeof currentItem === 'object' ? currentItem : null;
-                
-                if (personaInfo?.avatar) {
-                    avatarElement.src = personaInfo.avatar;
-                    avatarElement.alt = personaName;
-                    avatarElement.onerror = () => this.handleImageError(avatarElement);
-                } else {
-                    avatarElement.style.backgroundColor = '#ccc';
-                    avatarElement.style.borderRadius = '50%';
-                    avatarElement.style.display = 'flex';
-                    avatarElement.style.alignItems = 'center';
-                    avatarElement.style.justifyContent = 'center';
-                    avatarElement.textContent = '?';
-                    avatarElement.alt = personaName;
-                }
-                
-                content.appendChild(avatarElement);
-                
-                const textSpan = document.createElement('span');
-                textSpan.textContent = personaName;
-                content.appendChild(textSpan);
-                
-                item.appendChild(content);
-                this.personaScroll.appendChild(item);
-            }
-            
-            // 设置滚动容器高度
-            this.personaScroll.style.height = `${itemCount * this.itemHeight}px`;
-            
-            // 如果只有一个人格，直接高亮显示
-            if (personaItems.length === 1) {
-                setTimeout(() => {
-                    this.highlightSelectedItem(this.personaScroll, 0);
-                    
-                    const persona = personaItems[0];
-                    this.appState.set('game.selectedPersona', persona);
-                    
-                    if (this.selectedPersonaEl) {
-                        this.selectedPersonaEl.textContent = typeof persona === 'string' ? persona : persona.name;
-                    }
-                    
-                    if (this.personaStartBtn) {
-                        this.personaStartBtn.disabled = true;
-                    }
-                }, 0);
-            }
-            
-            this.updateResultDisplay();
-            this.logger.debug(`人格滚动列表已创建，�?{personaItems.length}项`);
-        } catch (error) {
-            this.logger.error('创建人格滚动列表失败', error);
-            throw error;
+    createPersonaScrollList(personaList) {
+        if (!this.dom.personaScrollList || !this.dom.personaScrollContainer) {
+            logger.warn('[ScrollController] 人格滚动容器未找到');
+            return;
         }
+        
+        this.currentPersonaList = Array.isArray(personaList) ? personaList : [];
+        this.dom.personaScrollList.innerHTML = '';
+        this.personaOffset = 0;
+        this.dom.personaScrollList.style.transition = 'none';
+        this.dom.personaScrollList.style.transform = 'translateY(0px)';
+        this.clearHighlight(this.dom.personaScrollList);
+        
+        if (!this.currentPersonaList.length) {
+            if (this.dom.personaEmptyEl) this.dom.personaEmptyEl.classList.remove('hidden');
+            if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = true;
+            if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = true;
+            return;
+        }
+        
+        if (this.dom.personaEmptyEl) this.dom.personaEmptyEl.classList.add('hidden');
+        
+        const visibleRows = Math.min(
+            Math.max(this.currentPersonaList.length, Config.minVisibleRows || 1),
+            Config.maxVisibleRows || 5
+        );
+        this.dom.personaScrollContainer.style.height = `${visibleRows * this.itemHeight}px`;
+        
+        const repeat = Config.totalHeightMultiplier || 5;
+        const itemsToCreate = this.currentPersonaList.length * repeat;
+        for (let i = 0; i < itemsToCreate; i++) {
+            const persona = this.currentPersonaList[i % this.currentPersonaList.length];
+            const item = this.createScrollItem(persona, 'persona', i % this.currentPersonaList.length);
+            this.dom.personaScrollList.appendChild(item);
+        }
+        this.dom.personaScrollList.style.height = `${itemsToCreate * this.itemHeight}px`;
+        
+        // 只有1个人格时禁用开始按钮（会自动选择），2个或以上允许滚动
+        if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = this.currentPersonaList.length < 2;
+        if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = true;
+        logger.debug(`[ScrollController] 人格滚动列表创建完成，共 ${this.currentPersonaList.length} 个人格`);
     }
     
     /**
-     * 开始罪人滚�?
+     * 创建单个滚动项
+     * @param {Object} data - 罪人或人格数据
+     * @param {string} type - 'sinner' 或 'persona'
+     * @returns {HTMLElement} 滚动项元素
      */
-    startSinnerScroll = () => {
-        try {
-            const filteredSinners = this.appState.get('filters.sinners');
-            if (!filteredSinners || filteredSinners.size === 0) {
-                this.modal.alert('请至少选择一个罪人！', '提示');
-                return;
-            }
-            
-            // 如果只有一个罪人，直接停止（自动选中�?
-            if (filteredSinners.size === 1) {
-                this.stopSinnerScroll();
-                return;
-            }
-            
-            if (this.sinnerScrollInterval) return;
-            
-            this.isSinnerScrolling = true;
-            this.appState.set('game.isScrolling', true);
-            
-            if (this.sinnerStartBtn) this.sinnerStartBtn.disabled = true;
-            if (this.sinnerStopBtn) this.sinnerStopBtn.disabled = false;
-            if (this.personaStartBtn) this.personaStartBtn.disabled = true;
-            
-            this.sinnerScrollInterval = setInterval(() => {
-                if (this.sinnerScroll) {
-                    this.sinnerScroll.style.transform = `translateY(${this.appState.get('game.sinnerScrollOffset') * this.itemHeight}px)`;
-                    this.appState.set('game.sinnerScrollOffset', (this.appState.get('game.sinnerScrollOffset') + 1) % 10000);
-                }
-            }, Config.scrollSpeed || 20);
-            
-            this.eventBus.emit('SCROLL_START', { type: 'sinner' });
-            this.logger.debug('罪人滚动已启�?);
-        } catch (error) {
-            this.logger.error('启动罪人滚动失败', error);
+    createScrollItem(data, type, originalIndex = 0) {
+        const item = document.createElement('div');
+        item.className = 'scroll-item';
+        item.style.height = `${this.itemHeight}px`;
+        item.dataset.originalIndex = originalIndex;
+        
+        if (type === 'sinner') {
+            item.dataset.sinnerId = data.id;
+            item.style.color = data.color || '#fff';
+        } else if (type === 'persona') {
+            item.dataset.personaName = data.name;
         }
+        
+        // 创建内容包裹器
+        const contentEl = document.createElement('div');
+        contentEl.className = 'scroll-item-content';
+        
+        // 添加头像图片
+        if (data.avatar) {
+            const avatarEl = document.createElement('img');
+            avatarEl.className = 'avatar-placeholder';
+            avatarEl.src = data.avatar;
+            avatarEl.alt = data.name;
+            avatarEl.onerror = function() {
+                // 图片加载失败时显示占位符
+                const fallback = document.createElement('div');
+                fallback.className = 'avatar-placeholder';
+                fallback.textContent = '?';
+                fallback.style.backgroundColor = data.color || '#666';
+                this.parentNode.replaceChild(fallback, this);
+            };
+            contentEl.appendChild(avatarEl);
+        } else {
+            // 没有头像时显示占位符
+            const fallback = document.createElement('div');
+            fallback.className = 'avatar-placeholder';
+            fallback.textContent = '?';
+            fallback.style.backgroundColor = data.color || '#666';
+            contentEl.appendChild(fallback);
+        }
+        
+        const nameEl = document.createElement('span');
+        nameEl.textContent = data.name;
+        contentEl.appendChild(nameEl);
+        
+        item.appendChild(contentEl);
+        
+        return item;
+    }
+    
+    /**
+     * 开始罪人滚动
+     */
+    startSinnerScroll() {
+        if (!this.currentSinnerList || this.currentSinnerList.length === 0) {
+            window.Modal?.alert('请至少选择一个罪人！', '提示');
+            return;
+        }
+
+        if (this.currentSinnerList.length === 1) {
+            this._selectSingleSinner(this.currentSinnerList[0]);
+            return;
+        }
+
+        // 清除之前的滚动
+        this.stopSinnerScroll(true);
+
+        const listEl = this.dom.sinnerScrollList;
+        if (!listEl) return;
+
+        if (this.dom.startSinnerButton) this.dom.startSinnerButton.disabled = true;
+        if (this.dom.stopSinnerButton) this.dom.stopSinnerButton.disabled = false;
+        if (this.dom.sinnerScrollContainer) this.dom.sinnerScrollContainer.classList.add('scrolling');
+
+        const speed = Config.scrollSpeed || 150;
+        const interval = Config.scrollInterval || 10;
+
+        this.scrollIntervals.sinner = setInterval(() => {
+            this.sinnerOffset += speed;
+            listEl.style.transition = `transform ${Config.transitionDuration || '0.05s'} ${Config.transitionType || 'linear'}`;
+            listEl.style.transform = `translateY(-${this.sinnerOffset}px)`;
+
+            const totalHeight = this.currentSinnerList.length * this.itemHeight * (Config.totalHeightMultiplier || 5);
+            if (this.sinnerOffset > totalHeight) {
+                this.sinnerOffset = this.sinnerOffset % totalHeight;
+                listEl.style.transition = 'none';
+                listEl.style.transform = `translateY(-${this.sinnerOffset}px)`;
+            }
+        }, interval);
+
+        appState.setScrolling(true);
+        eventBus.emit(GameEvents.SCROLL_START, { type: 'sinner' });
+
+        logger.info('[ScrollController] 罪人滚动开始');
     }
     
     /**
      * 停止罪人滚动
      */
-    stopSinnerScroll = () => {
-        try {
-            if (!this.isSinnerScrolling) return;
-            
-            clearInterval(this.sinnerScrollInterval);
-            this.sinnerScrollInterval = null;
-            this.isSinnerScrolling = false;
-            this.appState.set('game.isScrolling', false);
-            
-            if (this.sinnerStartBtn) this.sinnerStartBtn.disabled = false;
-            if (this.sinnerStopBtn) this.sinnerStopBtn.disabled = true;
-            if (this.personaStartBtn) this.personaStartBtn.disabled = false;
-            
-            const filteredSinners = Array.from(this.appState.get('filters.sinners') || new Set());
-            const randomIndex = secureRandInt(0, filteredSinners.length - 1);
-            const selectedSinner = filteredSinners[randomIndex];
-            
-            // 设置AppState
-            this.appState.set('game.selectedSinner', selectedSinner);
-            
-            // 高亮
-            if (this.sinnerScroll) {
-                this.highlightSelectedItem(this.sinnerScroll, randomIndex);
-            }
-            
-            // 更新显示
-            if (this.selectedSinnerEl) {
-                this.selectedSinnerEl.textContent = typeof selectedSinner === 'string' ? selectedSinner : selectedSinner.name;
-            }
-            
-            // 隐藏罪人空状�?
-            const sinnerEmpty = document.getElementById('sinner-empty');
-            if (sinnerEmpty) {
-                sinnerEmpty.classList.add('hidden');
-            }
-            
-            // 更新人格列表
-            const personalities = selectedSinner.personalities || [];
-            this.createPersonaScrollList(personalities);
-            
-            // 发出事件
-            this.eventBus.emit('SINNER_SELECTED', {
-                sinner: selectedSinner,
-                isAutoSelected: false,
-                itemsLength: filteredSinners.length
-            });
-            
-            this.updateResultDisplay();
-            this.logger.debug(`罪人已选中: ${typeof selectedSinner === 'string' ? selectedSinner : selectedSinner.name}`);
-        } catch (error) {
-            this.logger.error('停止罪人滚动失败', error);
+    stopSinnerScroll(silent = false) {
+        if (this.scrollIntervals.sinner) {
+            clearInterval(this.scrollIntervals.sinner);
+            this.scrollIntervals.sinner = null;
         }
+
+        if (this.dom.sinnerScrollContainer) {
+            this.dom.sinnerScrollContainer.classList.remove('scrolling');
+        }
+
+        if (silent) {
+            if (this.dom.startSinnerButton) this.dom.startSinnerButton.disabled = false;
+            if (this.dom.stopSinnerButton) this.dom.stopSinnerButton.disabled = true;
+            return;
+        }
+
+        if (!this.currentSinnerList.length) {
+            window.Modal?.alert('请至少选择一个罪人！', '提示');
+            return;
+        }
+
+        const randomIndex = secureRandInt(this.currentSinnerList.length);
+        const sinner = this.currentSinnerList[randomIndex];
+        appState.setSinner(sinner);
+        appState.setPersona(null);  // 显式清空已选的人格
+        window.currentSelectedSinner = sinner;
+        window.currentSelectedPersona = null;
+
+        if (this.dom.selectedSinnerEl) this.dom.selectedSinnerEl.textContent = sinner.name;
+        if (this.dom.selectedPersonaEl) this.dom.selectedPersonaEl.textContent = '未选择';
+
+        // 立即清空人格显示内容，防止旧数据残留
+        if (this.dom.resultPersonaImg) {
+            this.dom.resultPersonaImg.src = '';
+            this.dom.resultPersonaImg.style.display = 'none';
+        }
+        if (this.dom.resultPersonaFallback) this.dom.resultPersonaFallback.style.display = 'flex';
+
+        // 平滑定位到选中项
+        const visibleRows = Math.min(
+            Math.max(this.currentSinnerList.length, Config.minVisibleRows || 1),
+            Config.maxVisibleRows || 5
+        );
+        const centerIndex = Math.floor(visibleRows / 2);
+        const centerOffset = centerIndex * this.itemHeight;
+        const loopCount = Config.totalHeightMultiplier || 5;
+        const loopOffset = Math.max(1, Math.floor(loopCount / 2));
+        const targetOffset = (randomIndex + loopOffset * this.currentSinnerList.length) * this.itemHeight - centerOffset;
+        this.sinnerOffset = targetOffset;
+        if (this.dom.sinnerScrollList) {
+            this.dom.sinnerScrollList.style.transition = 'transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            this.dom.sinnerScrollList.style.transform = `translateY(-${targetOffset}px)`;
+        }
+
+        setTimeout(() => {
+            this.highlightSelectedItemByIndex(this.dom.sinnerScrollList, randomIndex);
+        }, 1200);
+
+        if (this.dom.startSinnerButton) this.dom.startSinnerButton.disabled = false;
+        if (this.dom.stopSinnerButton) this.dom.stopSinnerButton.disabled = true;
+
+        // 重置人格状态
+        this.resetPersonaScrollState();
+
+        const filteredPersonas = sinner.personalities.filter((persona, index) => {
+            return appState.isPersonalityEnabled(sinner.id, index);
+        });
+        this.createPersonaScrollList(filteredPersonas);
+
+        this.updateResultDisplay();
+
+        appState.setScrolling(false);
+        eventBus.emit(GameEvents.SINNER_SELECTED, { sinner });
+        eventBus.emit(GameEvents.SCROLL_STOP, { type: 'sinner', selected: sinner });
+
+        logger.info('[ScrollController] 罪人滚动停止');
     }
     
     /**
-     * 开始人格滚�?
+     * 开始人格滚动
      */
-    startPersonaScroll = () => {
-        try {
-            const selectedSinner = this.appState.get('game.selectedSinner');
-            if (!selectedSinner) {
-                this.modal.alert('请先选择罪人�?, '提示');
-                return;
-            }
-            
-            const personas = selectedSinner.personalities || [];
-            if (personas.length === 0) {
-                this.modal.alert('该罪人没有可用的人格�?, '提示');
-                return;
-            }
-            
-            // 如果只有一个人格，直接停止（自动选中�?
-            if (personas.length === 1) {
-                this.stopPersonaScroll();
-                return;
-            }
-            
-            if (this.personaScrollInterval) return;
-            
-            this.isPersonaScrolling = true;
-            this.appState.set('game.isScrolling', true);
-            
-            if (this.personaStartBtn) this.personaStartBtn.disabled = true;
-            if (this.personaStopBtn) this.personaStopBtn.disabled = false;
-            if (this.sinnerStartBtn) this.sinnerStartBtn.disabled = true;
-            
-            this.personaScrollInterval = setInterval(() => {
-                if (this.personaScroll) {
-                    this.personaScroll.style.transform = `translateY(${this.appState.get('game.personaScrollOffset') * this.itemHeight}px)`;
-                    this.appState.set('game.personaScrollOffset', (this.appState.get('game.personaScrollOffset') + 1) % 10000);
-                }
-            }, Config.scrollSpeed || 20);
-            
-            this.eventBus.emit('SCROLL_START', { type: 'persona' });
-            this.logger.debug('人格滚动已启�?);
-        } catch (error) {
-            this.logger.error('启动人格滚动失败', error);
+    startPersonaScroll() {
+        const currentSinner = appState.getSinner();
+        if (!currentSinner) {
+            window.Modal?.alert('请先选择一个罪人！', '提示');
+            return;
         }
+
+        if (!this.currentPersonaList || this.currentPersonaList.length === 0) {
+            logger.warn('[ScrollController] 无法开始滚动：没有可用的人格');
+            return;
+        }
+
+        // 只有1个人格时自动选择
+        if (this.currentPersonaList.length === 1) {
+            this.stopPersonaScroll(true);
+            return;
+        }
+
+        // 清除之前的滚动
+        this.stopPersonaScroll(true);
+
+        const listEl = this.dom.personaScrollList;
+        if (!listEl) return;
+
+        if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = true;
+        if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = false;
+        if (this.dom.personaScrollContainer) this.dom.personaScrollContainer.classList.add('scrolling');
+
+        const speed = Config.scrollSpeed || 150;
+        const interval = Config.scrollInterval || 10;
+
+        this.scrollIntervals.persona = setInterval(() => {
+            this.personaOffset += speed;
+            listEl.style.transition = `transform ${Config.transitionDuration || '0.05s'} ${Config.transitionType || 'linear'}`;
+            listEl.style.transform = `translateY(-${this.personaOffset}px)`;
+
+            const totalHeight = this.currentPersonaList.length * this.itemHeight * (Config.totalHeightMultiplier || 5);
+            if (this.personaOffset > totalHeight) {
+                this.personaOffset = this.personaOffset % totalHeight;
+                listEl.style.transition = 'none';
+                listEl.style.transform = `translateY(-${this.personaOffset}px)`;
+            }
+        }, interval);
+
+        appState.setScrolling(true);
+        eventBus.emit(GameEvents.SCROLL_START, { type: 'persona' });
+
+        logger.info('[ScrollController] 人格滚动开始');
     }
     
     /**
      * 停止人格滚动
      */
-    stopPersonaScroll = () => {
-        try {
-            if (!this.isPersonaScrolling) return;
-            
-            clearInterval(this.personaScrollInterval);
-            this.personaScrollInterval = null;
-            this.isPersonaScrolling = false;
-            this.appState.set('game.isScrolling', false);
-            
-            if (this.personaStartBtn) this.personaStartBtn.disabled = false;
-            if (this.personaStopBtn) this.personaStopBtn.disabled = true;
-            if (this.sinnerStartBtn) this.sinnerStartBtn.disabled = false;
-            
-            const selectedSinner = this.appState.get('game.selectedSinner');
-            const personas = selectedSinner?.personalities || [];
-            
-            if (personas.length === 0) return;
-            
-            const randomIndex = secureRandInt(0, personas.length - 1);
-            const selectedPersona = personas[randomIndex];
-            
-            // 设置AppState
-            this.appState.set('game.selectedPersona', selectedPersona);
-            
-            // 高亮
-            if (this.personaScroll) {
-                this.highlightSelectedItem(this.personaScroll, randomIndex);
-            }
-            
-            // 更新显示
-            if (this.selectedPersonaEl) {
-                this.selectedPersonaEl.textContent = typeof selectedPersona === 'string' ? selectedPersona : selectedPersona.name;
-            }
-            
-            // 隐藏人格空状�?
-            const personaEmpty = document.getElementById('persona-empty');
-            if (personaEmpty) {
-                personaEmpty.classList.add('hidden');
-            }
-            
-            // 发出事件
-            this.eventBus.emit('PERSONA_SELECTED', {
-                persona: selectedPersona,
-                sinner: selectedSinner,
-                itemsLength: personas.length
-            });
-            
-            // 检查彩蛋（需要单独实现）
-            this.checkEasterEgg();
-            
-            this.updateResultDisplay();
-            this.logger.debug(`人格已选中: ${typeof selectedPersona === 'string' ? selectedPersona : selectedPersona.name}`);
-        } catch (error) {
-            this.logger.error('停止人格滚动失败', error);
+    stopPersonaScroll(silent = false) {
+        if (this.scrollIntervals.persona) {
+            clearInterval(this.scrollIntervals.persona);
+            this.scrollIntervals.persona = null;
         }
+
+        if (this.dom.personaScrollContainer) {
+            this.dom.personaScrollContainer.classList.remove('scrolling');
+        }
+
+        if (!this.currentPersonaList.length) {
+            return;
+        }
+
+        if (this.currentPersonaList.length === 1) {
+            const persona = this.currentPersonaList[0];
+            appState.setPersona(persona);
+            window.currentSelectedPersona = persona;
+            if (this.dom.selectedPersonaEl) this.dom.selectedPersonaEl.textContent = persona.name;
+            this.highlightSelectedItemByIndex(this.dom.personaScrollList, 0);
+            this.updateResultDisplay();
+            this.checkEasterEgg();
+            if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = false;
+            if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = true;
+            eventBus.emit(GameEvents.PERSONA_SELECTED, { persona });
+            return;
+        }
+
+        if (silent) {
+            if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = false;
+            if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = true;
+            return;
+        }
+
+        const randomIndex = secureRandInt(this.currentPersonaList.length);
+        const persona = this.currentPersonaList[randomIndex];
+        appState.setPersona(persona);
+        window.currentSelectedPersona = persona;
+        if (this.dom.selectedPersonaEl) this.dom.selectedPersonaEl.textContent = persona.name;
+
+        const visibleRows = Math.min(
+            Math.max(this.currentPersonaList.length, Config.minVisibleRows || 1),
+            Config.maxVisibleRows || 5
+        );
+        const centerIndex = Math.floor(visibleRows / 2);
+        const centerOffset = centerIndex * this.itemHeight;
+        const loopCount = Config.totalHeightMultiplier || 5;
+        const loopOffset = Math.max(1, Math.floor(loopCount / 2));
+        const targetOffset = (randomIndex + loopOffset * this.currentPersonaList.length) * this.itemHeight - centerOffset;
+        this.personaOffset = targetOffset;
+        if (this.dom.personaScrollList) {
+            this.dom.personaScrollList.style.transition = 'transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            this.dom.personaScrollList.style.transform = `translateY(-${targetOffset}px)`;
+        }
+
+        setTimeout(() => {
+            this.highlightSelectedItemByIndex(this.dom.personaScrollList, randomIndex);
+        }, 1200);
+
+        if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = false;
+        if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = true;
+
+        this.updateResultDisplay();
+        this.checkEasterEgg();
+        appState.setScrolling(false);
+        eventBus.emit(GameEvents.PERSONA_SELECTED, { persona });
+        eventBus.emit(GameEvents.SCROLL_STOP, { type: 'persona', selected: persona });
+
+        logger.info('[ScrollController] 人格滚动停止');
     }
     
     /**
-     * 【关键方法】高亮选中�?
-     * 原始逻辑已验证通过，支�?个和12个罪人的所有边界情�?
-     * @protected 不应修改此方�?
-     * @param {HTMLElement} scrollContainer - 滚动容器
-     * @param {number} selectedIndex - 选中项的原始索引
+     * 获取容器中间的项
+     * @param {HTMLElement} container - 滚动容器
+     * @returns {HTMLElement|null} 中间项元素
      */
-    highlightSelectedItem(scrollContainer, selectedIndex) {
-        // 清除之前的高�?
-        const highlightedItems = scrollContainer.querySelectorAll('.selected');
-        highlightedItems.forEach(item => item.classList.remove('selected'));
+    getMiddleItem(container) {
+        if (!container) return null;
         
-        // 获取所有滚动项�?
-        const items = scrollContainer.querySelectorAll('.scroll-item');
+        const items = container.querySelectorAll('.scroll-item');
+        if (items.length === 0) return null;
         
-        if (!items.length || selectedIndex === null) {
-            return;
-        }
+        const containerRect = container.getBoundingClientRect();
+        const containerCenter = containerRect.top + containerRect.height / 2;
         
-        // 简化逻辑：直接找到originalIndex === selectedIndex的元�?
-        // 因为我们已经知道是哪个原始索引被选中�?
+        let closestItem = null;
+        let closestDistance = Infinity;
+        
         items.forEach(item => {
-            const itemOriginalIndex = parseInt(item.dataset.originalIndex) || 0;
-            // 高亮所有数据原始索引与选中项相同的元素�?0次重复）
+            const itemRect = item.getBoundingClientRect();
+            const itemCenter = itemRect.top + itemRect.height / 2;
+            const distance = Math.abs(containerCenter - itemCenter);
+            
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestItem = item;
+            }
+        });
+        
+        return closestItem;
+    }
+    
+    /**
+     * 清除高亮
+     * @param {HTMLElement} container
+     */
+    clearHighlight(container) {
+        if (!container) return;
+        container.querySelectorAll('.scroll-item').forEach(item => item.classList.remove('selected'));
+    }
+
+    /**
+     * 按索引高亮项目
+     * @param {HTMLElement} container
+     * @param {number} selectedIndex
+     */
+    highlightSelectedItemByIndex(container, selectedIndex) {
+        if (!container) return;
+        this.clearHighlight(container);
+        const items = container.querySelectorAll('.scroll-item');
+        if (!items.length) return;
+        items.forEach(item => {
+            const itemOriginalIndex = parseInt(item.dataset.originalIndex, 10);
             if (itemOriginalIndex === selectedIndex) {
                 item.classList.add('selected');
             }
         });
     }
-    
+
     /**
-     * 隐藏所有空状态提�?
+     * 重置人格滚动状态
      */
-    hideEmptyStates() {
-        const sinnerEmpty = document.getElementById('sinner-empty');
-        const personaEmpty = document.getElementById('persona-empty');
-        
-        if (sinnerEmpty) sinnerEmpty.classList.add('hidden');
-        if (personaEmpty) personaEmpty.classList.add('hidden');
+    resetPersonaScrollState() {
+        this.stopPersonaScroll(true);
+        this.personaOffset = 0;
+        if (this.dom.personaScrollList) {
+            this.dom.personaScrollList.style.transition = 'none';
+            this.dom.personaScrollList.style.transform = 'translateY(0px)';
+        }
+        this.currentPersonaList = [];
+        if (this.dom.personaEmptyEl) this.dom.personaEmptyEl.classList.remove('hidden');
+        if (this.dom.startPersonaButton) this.dom.startPersonaButton.disabled = true;
+        if (this.dom.stopPersonaButton) this.dom.stopPersonaButton.disabled = true;
+        this.resetResultDisplay();
     }
-    
+
     /**
-     * 处理图像加载错误
-     */
-    handleImageError(imgElement) {
-        imgElement.src = '';
-        imgElement.alt = '未知头像';
-        imgElement.style.backgroundColor = '#ccc';
-        imgElement.style.borderRadius = '50%';
-        imgElement.style.display = 'flex';
-        imgElement.style.alignItems = 'center';
-        imgElement.style.justifyContent = 'center';
-        imgElement.textContent = '?';
-    }
-    
-    /**
-     * 彩蛋检测（留作钩子，实现见主程序）
-     */
-    checkEasterEgg() {
-        // 由主程序或独立模块实�?
-        this.eventBus.emit('CHECK_EASTER_EGG', {
-            sinner: this.appState.get('game.selectedSinner'),
-            persona: this.appState.get('game.selectedPersona')
-        });
-    }
-    
-    /**
-     * 更新结果显示面板
+     * 更新结果展示
      */
     updateResultDisplay() {
-        // 在UI中显示当前选择状态和罪人计数等信�?
-        // 具体实现由UI层负责监听相应事�?
-        const selectedSinner = this.appState.get('game.selectedSinner');
-        const sinnerCount = this.appState.get('filters.sinners')?.size || 0;
+        const currentSelectedSinner = appState.getSinner();
+        const currentSelectedPersona = appState.getPersona();
         
-        this.eventBus.emit('RESULT_DISPLAY_UPDATE', {
-            selectedSinner,
-            sinnerCount
+        if (currentSelectedSinner && currentSelectedPersona) {
+            if (this.dom.resultDisplayEl) this.dom.resultDisplayEl.style.display = 'none';
+            if (this.dom.resultFinalEl) this.dom.resultFinalEl.style.display = 'block';
+            
+            if (this.dom.selectedSinnerEl) this.dom.selectedSinnerEl.textContent = currentSelectedSinner.name;
+            if (this.dom.selectedPersonaEl) this.dom.selectedPersonaEl.textContent = currentSelectedPersona.name;
+            
+            if (this.dom.resultSinnerImg && currentSelectedSinner.avatar) {
+                this.dom.resultSinnerImg.src = currentSelectedSinner.avatar;
+                this.dom.resultSinnerImg.alt = currentSelectedSinner.name;
+                this.dom.resultSinnerImg.style.display = 'block';
+                if (this.dom.resultSinnerFallback) this.dom.resultSinnerFallback.style.display = 'none';
+                this.dom.resultSinnerImg.onerror = () => {
+                    this.dom.resultSinnerImg.style.display = 'none';
+                    if (this.dom.resultSinnerFallback) this.dom.resultSinnerFallback.style.display = 'flex';
+                };
+            }
+            
+            let personaAvatar = currentSelectedPersona.avatar || '';
+            if (!personaAvatar && currentSelectedSinner && Array.isArray(currentSelectedSinner.personalities)) {
+                const match = currentSelectedSinner.personalities.find(p => p.name === currentSelectedPersona.name);
+                if (match && match.avatar) {
+                    personaAvatar = match.avatar;
+                }
+            }
+            if (this.dom.resultPersonaImg && personaAvatar) {
+                this.dom.resultPersonaImg.src = personaAvatar;
+                this.dom.resultPersonaImg.alt = currentSelectedPersona.name;
+                this.dom.resultPersonaImg.style.display = 'block';
+                if (this.dom.resultPersonaFallback) this.dom.resultPersonaFallback.style.display = 'none';
+                this.dom.resultPersonaImg.onerror = () => {
+                    this.dom.resultPersonaImg.style.display = 'none';
+                    if (this.dom.resultPersonaFallback) this.dom.resultPersonaFallback.style.display = 'flex';
+                };
+            }
+        } else if (currentSelectedSinner) {
+            // 只有罪人没有人格时，显示过渡状态
+            if (this.dom.resultFinalEl) this.dom.resultFinalEl.style.display = 'none';
+            if (this.dom.resultDisplayEl) {
+                this.dom.resultDisplayEl.style.display = 'block';
+                this.dom.resultDisplayEl.innerHTML = `
+                    <div class="result-empty">
+                        <div class="result-sinner-preview">
+                            <div class="result-sinner-avatar" style="margin: 0 auto 16px;">
+                                <img src="${currentSelectedSinner.avatar || ''}" alt="${currentSelectedSinner.name}" 
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" 
+                                    style="width:80px;height:80px;border-radius:8px;object-fit:cover;border:3px solid var(--lc-gold);">
+                                <div class="avatar-fallback" style="display:none;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="result-empty-text" style="color: var(--lc-gold);">${currentSelectedSinner.name}</div>
+                            <div class="result-empty-hint">已选择罪人，请继续选择人格</div>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            // 都没选时显示空状态
+            this.resetResultDisplay();
+        }
+    }
+
+    /**
+     * 重置结果展示
+     */
+    resetResultDisplay() {
+        if (this.dom.resultDisplayEl) {
+            this.dom.resultDisplayEl.style.display = 'block';
+            this.dom.resultDisplayEl.innerHTML = `
+                <div class="result-empty">
+                    <div class="result-empty-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        </svg>
+                    </div>
+                    <div class="result-empty-text">等待抽取</div>
+                    <div class="result-empty-hint">完成两级选择查看结果</div>
+                </div>
+            `;
+        }
+        if (this.dom.resultFinalEl) this.dom.resultFinalEl.style.display = 'none';
+        if (this.dom.resultSinnerImg) { this.dom.resultSinnerImg.style.display = 'none'; this.dom.resultSinnerImg.src = ''; }
+        if (this.dom.resultSinnerFallback) this.dom.resultSinnerFallback.style.display = 'flex';
+        if (this.dom.resultPersonaImg) { this.dom.resultPersonaImg.style.display = 'none'; this.dom.resultPersonaImg.src = ''; }
+        if (this.dom.resultPersonaFallback) this.dom.resultPersonaFallback.style.display = 'flex';
+    }
+
+    /**
+     * 彩蛋检测与触发
+     */
+    checkEasterEgg() {
+        const currentSelectedSinner = appState.getSinner();
+        const currentSelectedPersona = appState.getPersona();
+        if (!currentSelectedSinner || !currentSelectedPersona) return;
+
+        const sinnerId = currentSelectedSinner.id;
+        const personaName = typeof currentSelectedPersona === 'object'
+            ? currentSelectedPersona.name
+            : currentSelectedPersona;
+
+        if (!easterEggConfig[sinnerId]) return;
+        const videoPath = easterEggConfig[sinnerId][personaName];
+        if (!videoPath) return;
+
+        this.triggerUniversalEasterEgg(videoPath);
+    }
+
+    /**
+     * 通用彩蛋视频播放器
+     * @param {string} videoPath
+     */
+    triggerUniversalEasterEgg(videoPath) {
+        const modalId = 'universal-easter-egg-modal';
+        const videoId = 'universal-easter-egg-video';
+        const closeBtnId = 'universal-easter-egg-close-btn';
+
+        const modal = document.getElementById(modalId);
+        const video = document.getElementById(videoId);
+        const closeBtn = document.getElementById(closeBtnId);
+
+        if (!modal || !video || !closeBtn) {
+            logger.warn('通用彩蛋播放器元素未找到，请检查 index.html 结构');
+            return;
+        }
+
+        const hideModal = () => {
+            modal.classList.remove('fade-in');
+            setTimeout(() => {
+                modal.classList.remove('active');
+                video.pause();
+                video.currentTime = 0;
+                video.src = '';
+            }, 400);
+        };
+
+        closeBtn.onclick = (event) => {
+            event.stopPropagation();
+            hideModal();
+        };
+
+        video.onclick = (event) => {
+            event.stopPropagation();
+            if (video.paused) {
+                video.play().catch(() => {});
+            } else {
+                video.pause();
+            }
+        };
+
+        modal.onclick = (event) => {
+            if (event.target === modal) {
+                hideModal();
+            }
+        };
+
+        video.src = videoPath;
+        video.load();
+
+        modal.classList.add('active');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                modal.classList.add('fade-in');
+            });
         });
+
+        setTimeout(() => {
+            video.currentTime = 0;
+            const playPromise = video.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(() => {
+                    logger.info('彩蛋视频自动播放被浏览器阻止，用户可点击视频手动播放');
+                });
+            }
+        }, 100);
+    }
+
+    /**
+     * 只有一个罪人时自动选中
+     * @param {Object} sinner
+     */
+    _selectSingleSinner(sinner) {
+        appState.setSinner(sinner);
+        window.currentSelectedSinner = sinner;
+        if (this.dom.selectedSinnerEl) this.dom.selectedSinnerEl.textContent = sinner.name;
+        if (this.dom.selectedPersonaEl) this.dom.selectedPersonaEl.textContent = '未选择';
+        this.highlightSelectedItemByIndex(this.dom.sinnerScrollList, 0);
+
+        const filteredPersonas = sinner.personalities.filter((persona, index) => {
+            return appState.isPersonalityEnabled(sinner.id, index);
+        });
+        this.createPersonaScrollList(filteredPersonas);
+        this.updateResultDisplay();
     }
     
     /**
-     * 清理方法（在页面卸载或重新初始化时调用）
+     * 更新滚动列表
+     * 当筛选改变时调用
+     * @param {Array} sinnerList - 新的罪人列表
+     */
+    updateScrollLists(sinnerList) {
+        // 停止所有滚动
+        this.stopSinnerScroll(true);
+        this.stopPersonaScroll(true);
+        
+        // 重新创建罪人列表
+        this.createSinnerScrollList(sinnerList);
+        this.resetPersonaScrollState();
+        
+        logger.info('[ScrollController] 滚动列表已更新');
+    }
+    
+    /**
+     * 清空人格列表
+     */
+    clearPersonaList() {
+        this.resetPersonaScrollState();
+        this.currentPersonaList = [];
+    }
+    
+    /**
+     * 清理资源
      */
     destroy() {
-        // 停止所有滚�?
-        clearInterval(this.sinnerScrollInterval);
-        clearInterval(this.personaScrollInterval);
-        
-        // 移除事件监听�?
-        this.sinnerStartBtn?.removeEventListener('click', this.startSinnerScroll);
-        this.sinnerStopBtn?.removeEventListener('click', this.stopSinnerScroll);
-        this.personaStartBtn?.removeEventListener('click', this.startPersonaScroll);
-        this.personaStopBtn?.removeEventListener('click', this.stopPersonaScroll);
-        
-        this.logger.debug('ScrollController已销�?);
+        this.stopSinnerScroll();
+        this.stopPersonaScroll();
+        logger.info('[ScrollController] 已清理');
     }
 }
 
-export default ScrollController;
-
-
-
+// 导出单例
+export const scrollController = new ScrollController();

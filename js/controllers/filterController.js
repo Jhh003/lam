@@ -1,114 +1,94 @@
 /**
- * 过滤管理控制�?
+ * 筛选控制器 - 管理罪人和人格的筛选逻辑
  * 
- * 负责罪人和人格的过滤逻辑�?
- * 使用新的AppState和EventBus架构，完全消除全局变量�?
- * 
- * 迁移说明�?
- * - window.filteredSinnerData �?appState.get('filters.sinner')
- * - window.filteredPersonalityData �?appState.get('filters.persona')
- * - window.hasUnsavedChanges �?appState.get('app.hasUnsavedChanges')
- * - 事件通知通过eventBus发出
+ * 职责：
+ * - 创建和管理筛选UI
+ * - 处理罪人和人格的启用/禁用
+ * - 应用筛选规则到数据
+ * - 与AppState同步筛选状态
  * 
  * @module FilterController
- * @requires appState - 中央状态管�?
- * @requires eventBus - 事件系统
- * @requires logger - 日志系统
  */
 
 import { appState } from '../core/appState.js';
 import { eventBus, GameEvents } from '../core/eventBus.js';
 import { logger } from '../core/logger.js';
 import { sinnerData } from '../../data/characters.js';
-import modal from '../modal-new.js';
 
-/**
- * 过滤器控制器
- */
-class FilterController {
+export class FilterController {
     constructor() {
-        logger.info('FilterController 初始�?);
+        this.dom = {
+            sinnerFilterContainer: null,
+            toggleAllButton: null,
+            invertButton: null,
+            sinnerStartButton: null,
+            availableSinnersEl: null
+        };
         
-        // 注册事件监听
-        this._setupEventListeners();
+        this.initialized = false;
     }
-    
+
     /**
-     * 设置事件监听
-     * @private
-     */
-    _setupEventListeners() {
-        // 监听罪人过滤变化
-        eventBus.subscribe(
-            GameEvents.SINNER_FILTER_CHANGED,
-            this.onSinnerFilterChanged.bind(this),
-            5
-        );
-        
-        // 监听人格过滤变化
-        eventBus.subscribe(
-            GameEvents.PERSONA_FILTER_CHANGED,
-            this.onPersonaFilterChanged.bind(this),
-            5
-        );
-    }
-    
-    // ========== 创建UI ==========
-    
-    /**
-     * 创建头像占位�?
-     * @param {Object} sinner - 罪人对象
-     * @returns {HTMLElement} 占位符元�?
-     * @private
+     * 创建头像占位符
+     * @param {Object} sinner - 罪人数据
+     * @returns {HTMLElement}
      */
     createAvatarPlaceholder(sinner) {
         const placeholder = document.createElement('span');
         placeholder.className = 'filter-avatar-placeholder avatar-placeholder';
-        placeholder.style.backgroundColor = sinner.color;
+        placeholder.style.backgroundColor = sinner.color || '#666';
         placeholder.textContent = '?';
         return placeholder;
     }
     
     /**
-     * 创建罪人过滤UI
-     * 构建所有罪人的复选框列表
+     * 初始化DOM元素
+     * @param {Object} domElements - DOM元素映射
+     */
+    initDOM(domElements) {
+        Object.assign(this.dom, domElements);
+        this.initialized = true;
+        logger.info('[FilterController] DOM初始化完成');
+    }
+    
+    /**
+     * 创建罪人筛选UI
      */
     createSinnerFilter() {
-        const filterContainer = document.getElementById('sinner-filter');
-        if (!filterContainer) {
-            logger.warn('找不到sinner-filter容器');
+        if (!this.dom.sinnerFilterContainer) {
+            logger.warn('[FilterController] 罪人筛选容器未找到');
             return;
         }
         
-        filterContainer.innerHTML = '';
-        
-        // 从AppState恢复之前的过滤状�?
-        const savedFilters = appState.getSinnerFilters();
+        const fragment = document.createDocumentFragment();
         
         sinnerData.forEach(sinner => {
+            const isEnabled = appState.isSinnerEnabled(sinner.id);
+            
             const label = document.createElement('label');
             label.className = 'sinner-checkbox-label';
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
+            checkbox.id = `filter-${sinner.id}`;
             checkbox.value = sinner.id;
-            // 恢复已保存的状态，或默认全�?
-            checkbox.checked = savedFilters.size === 0 || savedFilters.has(sinner.id);
+            checkbox.checked = isEnabled;
+            checkbox.dataset.sinnerId = sinner.id;
             
-            // 绑定事件处理
-            checkbox.addEventListener('change', () => this.onSinnerCheckboxChange());
+            checkbox.addEventListener('change', (e) => {
+                this.toggleSinner(sinner.id, e.target.checked);
+            });
             
-            // 创建头像
             if (sinner.avatar) {
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'filter-avatar';
                 avatarImg.src = sinner.avatar;
                 avatarImg.alt = sinner.name;
                 avatarImg.onerror = () => {
-                    avatarImg.parentNode.replaceChild(
-                        this.createAvatarPlaceholder(sinner),
-                        avatarImg
-                    );
+                    const placeholder = this.createAvatarPlaceholder(sinner);
+                    if (avatarImg.parentNode) {
+                        avatarImg.parentNode.replaceChild(placeholder, avatarImg);
+                    }
                 };
                 label.appendChild(checkbox);
                 label.appendChild(avatarImg);
@@ -119,384 +99,273 @@ class FilterController {
             }
             
             label.appendChild(document.createTextNode(sinner.name));
-            filterContainer.appendChild(label);
+            fragment.appendChild(label);
         });
         
-        // 初始化过滤状�?
-        this.updateFilteredSinnerData();
+        this.dom.sinnerFilterContainer.innerHTML = '';
+        this.dom.sinnerFilterContainer.appendChild(fragment);
         
-        logger.info('罪人过滤UI已创�?);
-    }
-    
-    // ========== 罪人过滤 ==========
-    
-    /**
-     * 复选框变化事件处理
-     * @private
-     */
-    onSinnerCheckboxChange() {
-        this.updateFilteredSinnerData();
+        this.updateAvailableSinnersDisplay();
+        logger.info('[FilterController] 罪人筛选UI创建完成');
     }
     
     /**
-     * 更新过滤后的罪人数据
-     * 根据复选框状态更新AppState中的过滤数据
+     * 切换罪人启用状态
+     * @param {string} sinnerId - 罪人ID
+     * @param {boolean} enabled - 是否启用
      */
-    updateFilteredSinnerData() {
-        const timer = logger.time('更新罪人过滤');
+    toggleSinner(sinnerId, enabled) {
+        appState.toggleSinnerFilter(sinnerId, enabled);
+        appState.set('app.hasUnsavedChanges', true, { markUnsaved: false });
+        this.updateAvailableSinnersDisplay();
         
-        try {
-            // 获取选中的复选框
-            const checkboxes = document.querySelectorAll('#sinner-filter input[type="checkbox"]');
-            const selectedIds = Array.from(checkboxes)
-                .filter(cb => cb.checked)
-                .map(cb => parseInt(cb.value));
-            
-            // 更新AppState
-            appState.setSinnerFilters(new Set(selectedIds));
-            
-            // 更新开始按钮的禁用状�?
-            this.updateStartButtonState(selectedIds.length);
-            
-            // 标记有未保存更改
-            appState.set('app.hasUnsavedChanges', true);
-            
-            // 发出过滤变化事件
-            eventBus.emit(GameEvents.SINNER_FILTER_CHANGED, {
-                enabledCount: selectedIds.length,
-                totalCount: sinnerData.length,
-                timestamp: Date.now()
-            });
-            
-            logger.debug(`罪人过滤已更�? ${selectedIds.length}/${sinnerData.length}`);
-        } catch (error) {
-            logger.error('更新罪人过滤失败', error);
-            throw error;
-        } finally {
-            timer();
-        }
-    }
-    
-    /**
-     * 更新开始按钮的禁用状�?
-     * @param {number} selectedCount - 选中的罪人数�?
-     * @private
-     */
-    updateStartButtonState(selectedCount) {
-        const sinnerStartBtn = document.getElementById('sinner-start-btn');
-        if (sinnerStartBtn) {
-            // 当选中数量�?�?时禁�?
-            sinnerStartBtn.disabled = selectedCount === 0 || selectedCount === 1;
-        }
-    }
-    
-    /**
-     * 全选所有罪�?
-     */
-    selectAllSinners() {
-        const checkboxes = document.querySelectorAll('#sinner-filter input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = true);
-        this.updateFilteredSinnerData();
-        logger.info('已选中所有罪�?);
-    }
-    
-    /**
-     * 取消选择所有罪�?
-     */
-    deselectAllSinners() {
-        const checkboxes = document.querySelectorAll('#sinner-filter input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = false);
-        this.updateFilteredSinnerData();
-        logger.info('已取消选择所有罪�?);
-    }
-    
-    /**
-     * 反转选择
-     */
-    invertSinnerSelection() {
-        const checkboxes = document.querySelectorAll('#sinner-filter input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = !cb.checked);
-        this.updateFilteredSinnerData();
-        logger.info('已反转罪人选择');
-    }
-    
-    /**
-     * 获取过滤后的罪人列表
-     * @returns {Array} 过滤后的罪人数组
-     */
-    getFilteredSinners() {
-        const enabledIds = appState.getSinnerFilters();
-        if (enabledIds.size === 0) {
-            return [];
-        }
-        return sinnerData.filter(sinner => enabledIds.has(sinner.id));
-    }
-    
-    /**
-     * 检查罪人是否启�?
-     * @param {number} sinnerId - 罪人ID
-     * @returns {boolean}
-     */
-    isSinnerEnabled(sinnerId) {
-        return appState.isSinnerEnabled(sinnerId);
-    }
-    
-    // ========== 人格过滤 ==========
-    
-    /**
-     * 更新人格过滤�?
-     * @param {Map} personaFilters - Map<sinnerId, Set<personaIndex>>
-     */
-    updatePersonaFilters(personaFilters) {
-        try {
-            appState.setPersonaFilters(personaFilters);
-            
-            // 标记有未保存更改
-            appState.set('app.hasUnsavedChanges', true);
-            
-            // 发出事件
-            eventBus.emit(GameEvents.PERSONA_FILTER_CHANGED, {
-                totalFilters: personaFilters.size,
-                timestamp: Date.now()
-            });
-            
-            logger.debug(`人格过滤已更�? ${personaFilters.size}个罪人设置了过滤`);
-        } catch (error) {
-            logger.error('更新人格过滤失败', error);
-            throw error;
-        }
-    }
-    
-    /**
-     * 获取过滤后的人格列表
-     * @param {number} sinnerId - 罪人ID
-     * @returns {Array} 过滤后的人格数组
-     */
-    getFilteredPersonas(sinner) {
-        if (!sinner || !sinner.personalities) {
-            return [];
-        }
-        
-        const personaFilters = appState.getPersonaFilters();
-        const sinnerPersonaFilters = personaFilters.get(sinner.id);
-        
-        // 如果没有设置该罪人的过滤，默认选中所有人�?
-        if (!sinnerPersonaFilters) {
-            return sinner.personalities;
-        }
-        
-        // 过滤人格：包含未设置和非false的项
-        return sinner.personalities.filter((persona, index) => {
-            return sinnerPersonaFilters.has(index);
+        eventBus.emit(GameEvents.SINNER_FILTER_CHANGED, {
+            sinnerId,
+            enabled
         });
+        
+        // 触发人格设置UI重建
+        eventBus.emit('SINNER_SELECTION_CHANGED');
+        
+        logger.debug(`[FilterController] 罪人 ${sinnerId} ${enabled ? '启用' : '禁用'}`);
     }
     
     /**
-     * 检查人格是否启�?
-     * @param {number} sinnerId - 罪人ID
+     * 切换人格启用状态
+     * @param {string} sinnerId - 罪人ID
      * @param {number} personaIndex - 人格索引
-     * @returns {boolean}
+     * @param {boolean} enabled - 是否启用
      */
-    isPersonaEnabled(sinnerId, personaIndex) {
-        return appState.isPersonaEnabled(sinnerId, personaIndex);
+    togglePersonality(sinnerId, personaIndex, enabled) {
+        appState.togglePersonalityFilter(sinnerId, personaIndex, enabled);
+        appState.set('app.hasUnsavedChanges', true, { markUnsaved: false });
+        
+        eventBus.emit(GameEvents.PERSONA_FILTER_CHANGED, {
+            sinnerId,
+            personaIndex,
+            enabled
+        });
+        
+        logger.debug(`[FilterController] 人格 ${sinnerId}[${personaIndex}] ${enabled ? '启用' : '禁用'}`);
     }
     
-    // ========== 验证和应�?==========
+    /**
+     * 切换所有罪人启用状态
+     * @param {boolean} enabled - 是否启用
+     */
+    toggleAllSinners(enabled) {
+        sinnerData.forEach(sinner => {
+            appState.toggleSinnerFilter(sinner.id, enabled);
+            
+            // 同步UI复选框
+            const checkbox = document.getElementById(`filter-${sinner.id}`);
+            if (checkbox) {
+                checkbox.checked = enabled;
+            }
+        });
+        
+        appState.set('app.hasUnsavedChanges', true, { markUnsaved: false });
+        this.updateAvailableSinnersDisplay();
+        
+        eventBus.emit(GameEvents.FILTER_CHANGED, {
+            type: 'toggle_all',
+            enabled
+        });
+        
+        // 发送罪人选择变化事件，用于更新人格标签页
+        eventBus.emit('SINNER_SELECTION_CHANGED');
+        
+        logger.info(`[FilterController] 所有罪人 ${enabled ? '启用' : '禁用'}`);
+    }
     
     /**
-     * 验证过滤设置的有效�?
-     * @returns {boolean} 是否有效
+     * 切换所有人格启用状态
+     * @param {string} sinnerId - 罪人ID
+     * @param {boolean} enabled - 是否启用
+     */
+    toggleAllPersonalities(sinnerId, enabled) {
+        const sinner = sinnerData.find(s => s.id === sinnerId);
+        if (!sinner) return;
+        
+        sinner.personalities.forEach((persona, index) => {
+            appState.togglePersonalityFilter(sinnerId, index, enabled);
+        });
+        
+        appState.set('app.hasUnsavedChanges', true, { markUnsaved: false });
+        
+        eventBus.emit(GameEvents.FILTER_CHANGED, {
+            type: 'toggle_all_personalities',
+            sinnerId,
+            enabled
+        });
+        
+        logger.info(`[FilterController] 罪人 ${sinnerId} 的所有人格 ${enabled ? '启用' : '禁用'}`);
+    }
+    
+    /**
+     * 反选罪人或人格
+     * @param {string} type - 'sinner' 或 'personality'
+     * @param {string} sinnerId - 罪人ID（仅用于人格反选）
+     */
+    invertSelection(type, sinnerId = null) {
+        if (type === 'sinner') {
+            sinnerData.forEach(sinner => {
+                const currentState = appState.isSinnerEnabled(sinner.id);
+                appState.toggleSinnerFilter(sinner.id, !currentState);
+                
+                // 同步UI
+                const checkbox = document.getElementById(`filter-${sinner.id}`);
+                if (checkbox) {
+                    checkbox.checked = !currentState;
+                }
+            });
+        } else if (type === 'personality' && sinnerId) {
+            const sinner = sinnerData.find(s => s.id === sinnerId);
+            if (!sinner) return;
+            
+            sinner.personalities.forEach((persona, index) => {
+                const currentState = appState.isPersonalityEnabled(sinnerId, index);
+                appState.togglePersonalityFilter(sinnerId, index, !currentState);
+            });
+        }
+        
+        appState.set('app.hasUnsavedChanges', true, { markUnsaved: false });
+        this.updateAvailableSinnersDisplay();
+        
+        eventBus.emit(GameEvents.FILTER_CHANGED, {
+            type: 'invert',
+            target: type,
+            sinnerId
+        });
+        
+        // 如果是罪人反选，发送罪人选择变化事件
+        if (type === 'sinner') {
+            eventBus.emit('SINNER_SELECTION_CHANGED');
+        }
+        
+        logger.info(`[FilterController] 反选 ${type}${sinnerId ? ` (${sinnerId})` : ''}`);
+    }
+    
+    /**
+     * 应用筛选规则
+     * 根据当前筛选状态过滤罪人数据
+     */
+    applyFilters(options = {}) {
+        const { commit = true } = options;
+        if (!this.validateFilterSettings()) {
+            return false;
+        }
+        const filteredData = sinnerData.filter(sinner => {
+            return appState.isSinnerEnabled(sinner.id);
+        }).map(sinner => {
+            // 过滤人格
+            const filteredPersonalities = sinner.personalities.filter((persona, index) => {
+                return appState.isPersonalityEnabled(sinner.id, index);
+            });
+            
+            return {
+                ...sinner,
+                personalities: filteredPersonalities
+            };
+        });
+        
+        // 保存到AppState
+        appState.set('app.filteredSinnerData', filteredData, { markUnsaved: false });
+        if (commit) {
+            appState.set('app.hasUnsavedChanges', false, { markUnsaved: false });
+        }
+        
+        // 发送筛选应用事件
+        eventBus.emit(GameEvents.FILTER_CHANGED, {
+            filteredData,
+            enabledSinnerCount: filteredData.length
+        });
+        
+        this.updateAvailableSinnersDisplay(filteredData.length);
+        logger.debug(`[FilterController] 筛选应用完成，可用罪人: ${filteredData.length}`);
+        return true;
+    }
+    
+    /**
+     * 获取当前筛选的罪人数据
+     * @returns {Array} 筛选后的罪人数据
+     */
+    getFilteredData() {
+        return appState.get('app.filteredSinnerData') || [];
+    }
+    
+    /**
+     * 重置所有筛选
+     */
+    resetFilters() {
+        sinnerData.forEach(sinner => {
+            appState.toggleSinnerFilter(sinner.id, true);
+            sinner.personalities.forEach((persona, index) => {
+                appState.togglePersonalityFilter(sinner.id, index, true);
+            });
+        });
+
+        // 同步UI
+        const checkboxes = document.querySelectorAll('#sinner-filter input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = true;
+        });
+
+        appState.set('app.hasUnsavedChanges', true, { markUnsaved: false });
+        this.updateAvailableSinnersDisplay();
+        logger.info('[FilterController] 筛选已重置');
+    }
+
+    /**
+     * 验证筛选设置是否满足保底条件
+     * @returns {boolean}
      */
     validateFilterSettings() {
-        // 检查是否至少选择了一个罪�?
-        const filteredSinners = this.getFilteredSinners();
-        if (filteredSinners.length === 0) {
-            Modal.alert('请至少选择一个罪人！', '提示');
-            logger.warn('验证失败：未选择罪人');
+        const filteredSinners = sinnerData.filter(sinner => appState.isSinnerEnabled(sinner.id));
+        if (!filteredSinners.length) {
+            window.Modal?.alert('请至少选择一个罪人！', '提示');
             return false;
         }
-        
-        // 检查每个罪人是否至少选择了一个人�?
+
         const sinnersWithoutPersonalities = [];
-        const personaFilters = appState.getPersonaFilters();
-        
-        for (const sinner of filteredSinners) {
-            const hasPersonas = this.getFilteredPersonas(sinner).length > 0;
-            
-            if (!hasPersonas) {
+        filteredSinners.forEach(sinner => {
+            let hasPersonality = false;
+            for (let i = 0; i < sinner.personalities.length; i++) {
+                if (appState.isPersonalityEnabled(sinner.id, i)) {
+                    hasPersonality = true;
+                    break;
+                }
+            }
+            if (!hasPersonality) {
                 sinnersWithoutPersonalities.push(sinner.name);
             }
-        }
-        
+        });
+
         if (sinnersWithoutPersonalities.length > 0) {
-            const message = `请为以下罪人至少选择一个人格：\n${sinnersWithoutPersonalities.join('\n')}`;
-            Modal.alert(message, '提示');
-            logger.warn('验证失败：以下罪人未选择人格', sinnersWithoutPersonalities);
+            window.Modal?.alert(
+                `请为以下罪人至少选择一个人格：\n${sinnersWithoutPersonalities.join('\n')}`,
+                '提示'
+            );
             return false;
         }
-        
-        logger.info('过滤设置验证通过');
+
         return true;
     }
-    
+
     /**
-     * 应用过滤设置
-     * 验证设置后，保存为原始状态并切换到主页面
+     * 更新可用罪人数量显示
+     * @param {number} countOverride - 可选的数量覆盖
      */
-    applyFilters() {
-        const timer = logger.time('应用过滤设置');
-        
-        try {
-            // 验证
-            if (!this.validateFilterSettings()) {
-                return;
-            }
-            
-            // 清除未保存更改标�?
-            appState.set('app.hasUnsavedChanges', false);
-            
-            // 切换页面
-            this.switchToMainPage();
-            
-            // 发出过滤应用事件
-            eventBus.emit(GameEvents.FILTER_CHANGED, {
-                sinnerCount: this.getFilteredSinners().length,
-                timestamp: Date.now()
-            });
-            
-            logger.info('过滤设置已应�?);
-        } catch (error) {
-            logger.error('应用过滤设置失败', error);
-            throw error;
-        } finally {
-            timer();
+    updateAvailableSinnersDisplay(countOverride = null) {
+        if (!this.dom.availableSinnersEl) return;
+        const enabledCount = countOverride ?? sinnerData.filter(s => appState.isSinnerEnabled(s.id)).length;
+        this.dom.availableSinnersEl.textContent = `${enabledCount}/${sinnerData.length}`;
+
+        if (this.dom.sinnerStartButton) {
+            this.dom.sinnerStartButton.disabled = enabledCount === 0;
         }
-    }
-    
-    // ========== 页面导航 ==========
-    
-    /**
-     * 检查是否有未保存的更改
-     * @returns {boolean} 是否可以离开
-     */
-    checkUnsavedChanges() {
-        const hasChanges = appState.get('app.hasUnsavedChanges');
-        
-        if (hasChanges) {
-            const confirmed = Modal.confirm('您有未保存的更改，确定要离开吗？', '确认');
-            logger.debug(`未保存更改检�? ${confirmed ? '确定' : '取消'}`);
-            return confirmed;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * 切换到主页面
-     * @private
-     */
-    switchToMainPage() {
-        const mainPage = document.getElementById('main-selector-page');
-        const settingsPage = document.getElementById('settings-page');
-        const mainBtn = document.getElementById('main-page-btn');
-        const settingsBtn = document.getElementById('settings-page-btn');
-        
-        if (mainPage) mainPage.style.display = 'block';
-        if (settingsPage) settingsPage.style.display = 'none';
-        if (mainBtn) mainBtn.classList.add('active');
-        if (settingsBtn) settingsBtn.classList.remove('active');
-        
-        // 通知其他模块更新
-        eventBus.emit(GameEvents.PAGE_CHANGED, {
-            page: 'main',
-            timestamp: Date.now()
-        });
-    }
-    
-    /**
-     * 切换到设置页�?
-     * @private
-     */
-    switchToSettingsPage() {
-        const mainPage = document.getElementById('main-selector-page');
-        const settingsPage = document.getElementById('settings-page');
-        const mainBtn = document.getElementById('main-page-btn');
-        const settingsBtn = document.getElementById('settings-page-btn');
-        
-        if (mainPage) mainPage.style.display = 'none';
-        if (settingsPage) settingsPage.style.display = 'block';
-        if (mainBtn) mainBtn.classList.remove('active');
-        if (settingsBtn) settingsBtn.classList.add('active');
-        
-        // 通知其他模块更新
-        eventBus.emit(GameEvents.PAGE_CHANGED, {
-            page: 'settings',
-            timestamp: Date.now()
-        });
-    }
-    
-    // ========== 事件处理 ==========
-    
-    /**
-     * 罪人过滤变化事件处理
-     * @private
-     */
-    onSinnerFilterChanged(data) {
-        logger.debug('罪人过滤变化', data);
-        
-        // 如果这是一个显著的变化，可能需要重新渲染UI
-        // 具体操作由订阅者决�?
-    }
-    
-    /**
-     * 人格过滤变化事件处理
-     * @private
-     */
-    onPersonaFilterChanged(data) {
-        logger.debug('人格过滤变化', data);
-    }
-    
-    // ========== 公共API ==========
-    
-    /**
-     * 获取过滤统计信息
-     * @returns {Object} 统计对象
-     */
-    getFilterStats() {
-        const sinner = this.getFilteredSinners();
-        const personas = new Set();
-        
-        sinner.forEach(s => {
-            const filtered = this.getFilteredPersonas(s);
-            filtered.forEach(p => personas.add(p.id || p.name));
-        });
-        
-        return {
-            sinnerCount: sinner.length,
-            personaCount: personas.size,
-            hasUnsavedChanges: appState.get('app.hasUnsavedChanges')
-        };
-    }
-    
-    /**
-     * 重置过滤到初始状�?
-     */
-    reset() {
-        const checkboxes = document.querySelectorAll('#sinner-filter input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = true);
-        
-        appState.set('app.hasUnsavedChanges', false);
-        this.updateFilteredSinnerData();
-        
-        logger.info('过滤器已重置');
     }
 }
 
-// 创建并导出单�?
+// 导出单例
 export const filterController = new FilterController();
-
-// 也导出类本身，用于测�?
-export default FilterController;
-
-
-

@@ -466,9 +466,19 @@ class EventBus {
      * @private
      */
     _recordHistory(eventName, data) {
+        let serializedData = 'undefined';
+        try {
+            if (data !== undefined) {
+                const jsonData = JSON.stringify(data);
+                serializedData = jsonData === undefined ? 'undefined' : jsonData;
+            }
+        } catch (error) {
+            serializedData = '[unserializable]';
+        }
+
         this.eventHistory.push({
             eventName,
-            data: JSON.stringify(data).substring(0, 100), // 截断长数据
+            data: serializedData.substring(0, 100), // 截断长数据
             timestamp: Date.now()
         });
         

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/season.css">
     <link rel="stylesheet" href="css/module/dynamic-styles.css">
+    <link rel="stylesheet" href="css/module/personality-tabs.css">
     <!-- 边狱巴士主题 -->
     <link rel="stylesheet" href="css/limbus-theme-v2.css">
     <!-- 字体 -->
@@ -54,12 +55,6 @@
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
             <span>筛选设置</span>
-        </button>
-        <button id="ranking-page-btn" class="nav-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M6 9v10m6-10v10m6-10v10M6 19h12"/>
-            </svg>
-            <span>排行榜</span>
         </button>
         <button id="timer-toggle-btn" class="nav-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
@@ -378,9 +373,6 @@
                             <button type="submit" id="upload-ranking-btn" class="control-btn btn-primary">
                                 <i class="fas fa-save"></i> 保存到本地
                             </button>
-                            <button type="button" id="upload-global-btn" class="control-btn">
-                                <i class="fas fa-cloud-upload-alt"></i> 上传全球榜
-                            </button>
                             <button type="button" id="view-ranking-btn" class="control-btn">
                                 <i class="fas fa-trophy"></i> 查看排行榜
                             </button>
@@ -388,141 +380,7 @@
                     </form>
                 </div>
             </div>
-        </div>
     </div>
-
-    <!-- 全球排行榜上传模态窗口 -->
-    <div id="upload-modal" class="modal">
-        <div class="modal-content upload-modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-cloud-upload-alt"></i> 上传到全球排行榜</h3>
-                <button id="upload-modal-close-btn" class="close-btn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body upload-modal-body">
-                <div class="upload-type-selector">
-                    <h4>选择上传类型：</h4>
-                    <div class="upload-type-options">
-                        <label class="upload-type-option">
-                            <input type="radio" name="uploadType" value="full" checked>
-                            <div class="upload-type-card">
-                                <i class="fas fa-list-ul"></i>
-                                <h5>完整记录上传</h5>
-                                <p>同时记录单通时间和单通层数</p>
-                            </div>
-                        </label>
-                        <label class="upload-type-option">
-                            <input type="radio" name="uploadType" value="floor-only">
-                            <div class="upload-type-card">
-                                <i class="fas fa-layer-group"></i>
-                                <h5>简化记录上传</h5>
-                                <p>仅记录单通层数，不包含时间</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <form id="upload-global-form" class="upload-global-form">
-                    <div id="full-upload-fields" class="upload-fields">
-                        <div class="upload-section">
-                            <h5 class="section-title"><i class="fas fa-clock"></i> 时间信息</h5>
-                            <div class="form-group">
-                                <label>通关时间：</label>
-                                <input type="text" id="full-time-display" readonly>
-                            </div>
-                        </div>
-
-                        <div class="upload-section">
-                            <h5 class="section-title"><i class="fas fa-layer-group"></i> 层数信息</h5>
-                            <div class="form-group">
-                                <label>选择单通层数：</label>
-                                <div class="floor-options">
-                                    <label class="floor-option">
-                                        <input type="radio" name="fullFloorLevel" value="5">
-                                        <span>第5层</span>
-                                    </label>
-                                    <label class="floor-option">
-                                        <input type="radio" name="fullFloorLevel" value="10">
-                                        <span>第10层</span>
-                                    </label>
-                                    <label class="floor-option">
-                                        <input type="radio" name="fullFloorLevel" value="15">
-                                        <span>第15层</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="upload-section">
-                            <h5 class="section-title"><i class="fas fa-info-circle"></i> 附加信息</h5>
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="full-used-ego">
-                                    使用了 E.G.O
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label for="full-screenshot">附上通关图片：</label>
-                                <input type="url" id="full-screenshot" placeholder="请输入图片链接（如：图床URL、GitHub链接等）" maxlength="500">
-                                <small>建议上传到图床后粘贴链接，或使用GitHub Issue附件功能</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="full-comment">备注：</label>
-                                <textarea id="full-comment" rows="3" placeholder="将显示在全球排行榜中（可选）" maxlength="100"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="floor-only-upload-fields" class="upload-fields" style="display: none;">
-                        <div class="upload-section">
-                            <h5 class="section-title"><i class="fas fa-layer-group"></i> 层数信息</h5>
-                            <div class="form-group">
-                                <label>选择单通层数：</label>
-                                <div class="floor-options">
-                                    <label class="floor-option">
-                                        <input type="radio" name="floorOnlyFloorLevel" value="5">
-                                        <span>第5层</span>
-                                    </label>
-                                    <label class="floor-option">
-                                        <input type="radio" name="floorOnlyFloorLevel" value="10">
-                                        <span>第10层</span>
-                                    </label>
-                                    <label class="floor-option">
-                                        <input type="radio" name="floorOnlyFloorLevel" value="15">
-                                        <span>第15层</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="upload-section">
-                            <h5 class="section-title"><i class="fas fa-info-circle"></i> 附加信息</h5>
-                            <div class="form-group">
-                                <label for="floor-only-screenshot">附上通关图片：</label>
-                                <input type="url" id="floor-only-screenshot" placeholder="请输入图片链接（如：图床URL、GitHub链接等）" maxlength="500">
-                                <small>建议上传到图床后粘贴链接，或使用GitHub Issue附件功能</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="floor-only-comment">备注：</label>
-                                <textarea id="floor-only-comment" rows="3" placeholder="将显示在全球排行榜中（可选）" maxlength="100"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="upload-actions">
-                        <button type="button" id="cancel-upload-btn" class="btn-secondary">
-                            <i class="fas fa-times"></i> 取消
-                        </button>
-                        <button type="submit" id="confirm-upload-btn" class="btn-primary">
-                            <i class="fas fa-check"></i> 确认上传
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- 使用说明弹窗 -->
     <div id="help-modal" class="modal">
         <div class="modal-content">
@@ -549,24 +407,11 @@
 
 <!-- 核心应用脚本 -->
 <script type="module">
-    // 导入核心模块
-    import { AppState } from './js/core/appState.js';
-    import { EventBus } from './js/core/eventBus.js';
-    import { Logger } from './js/core/logger.js';
-    
     // 导入主程序
-    import { main } from './js/main-new.js';
-    
-    // 导入兼容层（可选，用于旧代码支持）
-    import { initCommonCompat } from './js/common-compat.js';
-    import { initMainCompat } from './js/main-compat.js';
-    import { initUICompat } from './js/ui-compat.js';
+    import { main } from './js/main.js';
     
     // 导入Modal
-    import modal from './js/modal-new.js';
-    
-    // 导入UI工具
-    import UI from './js/ui.js';
+    import modal from './js/modal.js';
     
     // 全局导出Modal供兼容层使用
     window.Modal = modal;
@@ -578,16 +423,6 @@
             alert('应用启动失败: ' + error.message);
         });
     });
-    
-    // 应用已加载后初始化兼容层
-    setTimeout(() => {
-        if (window.appState && window.eventBus) {
-            initCommonCompat();
-            initMainCompat();
-            initUICompat();
-            console.log('✅ 兼容层已初始化');
-        }
-    }, 500);
 </script>
 
 </html>

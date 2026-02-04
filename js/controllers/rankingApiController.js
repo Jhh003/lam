@@ -1,161 +1,196 @@
 /**
- * RankingApiController - 排行榜API模块
- * 负责与排行榜相关的API调用、数据管�?
+ * 排行榜API控制器 - 管理本地排行榜数据
  * 
- * 功能�?
- * - 保存到本地排行榜
- * - 获取服务器时�?
- * - 验证URL
- * - 查看排行�?
+ * 职责：
+ * - 本地排行榜保存和读取
+ * - 排行榜数据排序和筛选
+ * - 记录删除和管理
+ * 
+ * @module RankingApiController
  */
 
+import { appState } from '../core/appState.js';
+import { eventBus, GameEvents } from '../core/eventBus.js';
+import { logger } from '../core/logger.js';
+
 export class RankingApiController {
-    constructor(appState, eventBus, logger, modal) {
-        this.appState = appState;
-        this.eventBus = eventBus;
-        this.logger = logger;
-        this.modal = modal;
-        
-        this.logger.debug('RankingApiController已初始化');
+    constructor() {
+        this.storageKey = 'local_ranking';
     }
     
     /**
      * 保存到本地排行榜
-     * @param {number} seconds - 通关时间（秒�?
-     * @param {Object} sinner - 选中的罪�?
-     * @param {Object} persona - 选中的人�?
-     * @param {string} playerNote - 玩家备注
+     * @param {Object} sinner - 罪人对象
+     * @param {Object} persona - 人格对象
+     * @param {number} time - 用时（秒）
+     * @param {string} note - 备注
+     * @param {Object} options - 额外选项
      */
-    async saveToLocalRanking(seconds, sinner, persona, playerNote = '') {
-        try {
-            if (seconds === 0) {
-                await this.modal.alert('请先完成一次游戏计时再保存�?, '提示');
-                return false;
-            }
-            
-            // 从localStorage获取现有记录
-            const records = JSON.parse(localStorage.getItem('personalRanking') || '[]');
-            
-            // 创建新记�?
-            const newRecord = {
-                time: seconds,
-                comment: playerNote.trim(),
-                timestamp: new Date().toISOString(),
-                sinner: sinner ? {
-                    name: sinner.name,
-                    avatar: persona ? persona.avatar : sinner.avatar
-                } : null,
-                persona: persona ? {
-                    name: persona.name,
-                    avatar: persona.avatar
-                } : null
-            };
-            
-            // 添加新记�?
-            records.push(newRecord);
-            
-            // 保存回localStorage
-            localStorage.setItem('personalRanking', JSON.stringify(records));
-            
-            // 发出事件
-            this.eventBus.emit('RANKING_SAVED_LOCAL', {
-                record: newRecord,
-                totalRecords: records.length
-            });
-            
-            this.logger.debug('记录已保存到本地排行�?);
-            return true;
-        } catch (error) {
-            this.logger.error('保存到本地排行榜失败', error);
-            await this.modal.alert(`保存失败: ${error.message}`, '错误');
+    saveToLocalRanking(sinner, persona, time, note = '', options = {}) {
+        if (!sinner || !persona || typeof time !== 'number') {
+            logger.error('[RankingApiController] 保存失败：参数无效');
             return false;
         }
+        
+        const record = {
+            timestamp: this.getCurrentTime(),
+            sinner: sinner.name || sinner.id,
+            sinnerId: sinner.id,
+            persona: persona.name,
+            time: time,
+            note: note,
+            ...options
+        };
+        
+        // 添加到AppState
+        appState.addLocalRecord(record);
+        
+        eventBus.emit(GameEvents.LOCAL_RECORD_SAVED, record);
+        
+        logger.info(`[RankingApiController] 记录已保存: ${sinner.name} - ${persona.name} (${time}秒)`);
+        
+        return true;
     }
     
     /**
-     * 获取本地排行榜记�?
-     * @returns {Array} 排行榜记录数�?
+     * 获取本地排行榜记录
+     * @param {string} type - 排序类型 'time' 或 'date'
+     * @returns {Array} 排序后的记录列表
      */
-    getLocalRecords() {
-        try {
-            const records = JSON.parse(localStorage.getItem('personalRanking') || '[]');
-            return records.sort((a, b) => a.time - b.time); // 按时间升序排�?
-        } catch (error) {
-            this.logger.error('获取本地排行榜失�?, error);
-            return [];
+    getLocalRecords(type = 'time') {
+        const records = appState.get('ranking.localRecords') || [];
+        
+        if (type === 'time') {
+            // 按时间升序排序（快到慢）
+            return [...records].sort((a, b) => a.time - b.time);
+        } else if (type === 'date') {
+            // 按日期降序排序（新到旧）
+            return [...records].sort((a, b) => {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
         }
+        
+        return records;
     }
     
     /**
-     * 清空本地排行�?
+     * 删除本地记录
+     * @param {number} index - 记录索引
+     */
+    deleteLocalRecord(index) {
+        const records = appState.get('ranking.localRecords') || [];
+        
+        if (index < 0 || index >= records.length) {
+            logger.error('[RankingApiController] 删除失败：索引无效');
+            return false;
+        }
+        
+        records.splice(index, 1);
+        appState.set('ranking.localRecords', records);
+        
+        eventBus.emit(GameEvents.RANKING_UPDATED, { records });
+        
+        logger.info(`[RankingApiController] 记录已删除: 索引 ${index}`);
+        
+        return true;
+    }
+    
+    /**
+     * 清空本地排行榜
      */
     clearLocalRecords() {
-        try {
-            localStorage.removeItem('personalRanking');
-            this.eventBus.emit('RANKING_CLEARED_LOCAL', {});
-            this.logger.debug('本地排行榜已清空');
-        } catch (error) {
-            this.logger.error('清空本地排行榜失�?, error);
-        }
+        appState.set('ranking.localRecords', []);
+        
+        eventBus.emit(GameEvents.RANKING_UPDATED, { records: [] });
+        
+        logger.info('[RankingApiController] 本地排行榜已清空');
     }
     
     /**
-     * 打开排行榜页�?
+     * 获取当前时间字符串
+     * @returns {string} 格式化的时间字符串
+     */
+    getCurrentTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+    
+    /**
+     * 打开排行榜页面
      */
     viewRanking() {
-        try {
-            window.open('ranking.html', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
-            this.eventBus.emit('RANKING_PAGE_OPENED', {});
-            this.logger.debug('排行榜页面已打开');
-        } catch (error) {
-            this.logger.error('打开排行榜页面失�?, error);
-        }
+        window.location.href = 'ranking.html';
     }
     
     /**
-     * 获取当前时间（优先使用API，失败则使用本地时间�?
-     * @returns {Promise<Date>} 当前时间
-     */
-    async getCurrentTime() {
-        try {
-            const response = await fetch('https://cn.apihz.cn/api/time/getapi.php?id=10010737&key=949afa1fb7d14d5ea210b69a761595a5&type=20');
-            
-            if (!response.ok) {
-                throw new Error('API响应失败');
-            }
-            
-            const data = await response.json();
-            const timestamp = parseInt(data.sjc) * 1000;
-            return new Date(timestamp);
-        } catch (error) {
-            this.logger.warn('获取服务器时间失败，使用本地时间', error);
-            return new Date();
-        }
-    }
-    
-    /**
-     * 验证URL有效�?
-     * @param {string} url - 要验证的URL
-     * @returns {boolean} URL是否有效
+     * 验证URL格式
+     * @param {string} url - URL字符串
+     * @returns {boolean} 是否有效
      */
     isValidUrl(url) {
         try {
-            const urlObj = new URL(url);
-            return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-        } catch (_) {
+            new URL(url);
+            return true;
+        } catch {
             return false;
         }
     }
     
     /**
-     * 清理方法
+     * 获取排行榜统计信息
+     * @returns {Object} 统计信息
      */
-    destroy() {
-        this.logger.debug('RankingApiController已销�?);
+    getStatistics() {
+        const records = this.getLocalRecords();
+        
+        if (records.length === 0) {
+            return {
+                totalRecords: 0,
+                bestTime: null,
+                averageTime: null,
+                mostUsedSinner: null,
+                mostUsedPersona: null
+            };
+        }
+        
+        const totalRecords = records.length;
+        const bestTime = Math.min(...records.map(r => r.time));
+        const averageTime = records.reduce((sum, r) => sum + r.time, 0) / totalRecords;
+        
+        // 统计最常用的罪人
+        const sinnerCounts = {};
+        records.forEach(r => {
+            sinnerCounts[r.sinner] = (sinnerCounts[r.sinner] || 0) + 1;
+        });
+        const mostUsedSinner = Object.keys(sinnerCounts).reduce((a, b) => 
+            sinnerCounts[a] > sinnerCounts[b] ? a : b
+        );
+        
+        // 统计最常用的人格
+        const personaCounts = {};
+        records.forEach(r => {
+            personaCounts[r.persona] = (personaCounts[r.persona] || 0) + 1;
+        });
+        const mostUsedPersona = Object.keys(personaCounts).reduce((a, b) => 
+            personaCounts[a] > personaCounts[b] ? a : b
+        );
+        
+        return {
+            totalRecords,
+            bestTime,
+            averageTime,
+            mostUsedSinner,
+            mostUsedPersona
+        };
     }
 }
 
-export default RankingApiController;
-
-
-
+// 导出单例
+export const rankingApiController = new RankingApiController();

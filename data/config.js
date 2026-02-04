@@ -1,8 +1,8 @@
 // 应用配置常量
 export const Config = {
     // 项目配置
-    itemHeight: 50, // 每个项目高度
-    minVisibleRows: 1, // 最小可见行数
+    itemHeight: 64, // 每个项目高度
+    minVisibleRows: 3, // 最小可见行数
     maxVisibleRows: 5, // 最大可见行数
     
     // 滚动配置

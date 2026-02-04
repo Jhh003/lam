@@ -1,133 +1,165 @@
 /**
- * AnimationController - 动画和视觉效果模�?
- * 负责倒计时显示、闪烁动画等视觉效果
+ * 动画控制器 - 管理页面动画效果
  * 
- * 功能�?
- * - 初始化倒计时显�?
- * - 生成带闪烁动画的文本
- * - 管理动画生命周期
+ * 职责：
+ * - 倒计时动画
+ * - 文字动画效果
+ * - 过渡动画管理
+ * 
+ * @module AnimationController
  */
 
+import { logger } from '../core/logger.js';
+
 export class AnimationController {
-    constructor(appState, eventBus, logger) {
-        this.appState = appState;
-        this.eventBus = eventBus;
-        this.logger = logger;
+    constructor() {
+        this.dom = {
+            countdownElement: null
+        };
         
-        // DOM元素（延迟初始化�?
-        this.countdownElement = null;
-        
-        this.logger.debug('AnimationController已初始化');
+        this.countdownInterval = null;
+        this.targetDate = null;
+        this.initialized = false;
     }
     
     /**
      * 初始化DOM元素
-     * @param {Object} domElements - 包含必需DOM元素的对�?
+     * @param {Object} domElements - DOM元素映射
      */
     initDOM(domElements) {
-        try {
-            this.countdownElement = domElements.countdownElement || 
-                                   document.getElementById('countdown');
-            
-            if (this.countdownElement) {
-                this.initCountdown();
-            }
-            
-            this.logger.debug('AnimationController DOM初始化完�?);
-        } catch (error) {
-            this.logger.error('AnimationController DOM初始化失�?, error);
-            throw error;
-        }
+        Object.assign(this.dom, domElements);
+        this.initialized = true;
+        logger.info('[AnimationController] DOM初始化完成');
     }
     
     /**
-     * 初始化倒计时显�?
+     * 初始化倒计时
+     * @param {Date|string} targetDate - 目标日期
      */
-    initCountdown() {
-        try {
-            if (!this.countdownElement) {
-                this.logger.warn('倒计时元素未找到');
-                return;
-            }
-            
-            const countdownText = '第七赛季-蛛丝赤已经到来！';
-            const animatedText = this.createAnimatedText(countdownText);
-            this.countdownElement.innerHTML = animatedText;
-            
-            this.logger.debug('倒计时已初始�?);
-        } catch (error) {
-            this.logger.error('初始化倒计时失�?, error);
-        }
-    }
-    
-    /**
-     * 创建带有闪烁动画效果的文�?
-     * 原始实现已验证，保持不变
-     * @param {string} text - 要动画化的文本（可包�?br>标签�?
-     * @returns {string} HTML字符串，包含动画样式
-     */
-    createAnimatedText(text) {
-        // 处理换行符，将文本分成多�?
-        const lines = text.split('<br>');
-        let result = '';
+    initCountdown(targetDate) {
+        this.targetDate = new Date(targetDate);
         
-        lines.forEach((line, lineIndex) => {
-            if (lineIndex > 0) {
-                result += '<br>';
+        if (isNaN(this.targetDate.getTime())) {
+            logger.error('[AnimationController] 无效的目标日期');
+            return;
+        }
+        
+        // 立即更新一次
+        this.updateCountdown();
+        
+        // 每秒更新
+        this.countdownInterval = setInterval(() => {
+            this.updateCountdown();
+        }, 1000);
+        
+        logger.info('[AnimationController] 倒计时已启动');
+    }
+    
+    /**
+     * 更新倒计时显示
+     */
+    updateCountdown() {
+        if (!this.dom.countdownElement || !this.targetDate) return;
+        
+        const now = new Date();
+        const diff = this.targetDate - now;
+        
+        if (diff <= 0) {
+            this.dom.countdownElement.textContent = '已到达目标时间';
+            if (this.countdownInterval) {
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
             }
-            
-            // 为整行添加season-text�?
-            result += '<div class="season-text">';
-            
-            // 为每个字符添加glowIn类的span
-            for (let i = 0; i < line.length; i++) {
-                if (line[i] === ' ') {
-                    // 空格保持原样
-                    result += ' ';
-                } else {
-                    // 其他字符用span包裹并应用动�?
-                    result += `<span class="glowIn"><span>${line[i]}</span></span>`;
-                }
-            }
-            
-            result += '</div>';
+            return;
+        }
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        const parts = [];
+        if (days > 0) parts.push(`${days}天`);
+        if (hours > 0) parts.push(`${hours}小时`);
+        if (minutes > 0) parts.push(`${minutes}分钟`);
+        parts.push(`${seconds}秒`);
+        
+        this.dom.countdownElement.textContent = parts.join(' ');
+    }
+    
+    /**
+     * 创建动画文字效果
+     * @param {string} text - 文字内容
+     * @param {HTMLElement} container - 容器元素
+     */
+    createAnimatedText(text, container) {
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const chars = text.split('');
+        chars.forEach((char, index) => {
+            const span = document.createElement('span');
+            span.textContent = char;
+            span.style.animationDelay = `${index * 0.05}s`;
+            span.className = 'animated-char';
+            container.appendChild(span);
         });
-        
-        return result;
     }
     
     /**
-     * 更新倒计时文�?
-     * @param {string} text - 新的文本
+     * 淡入动画
+     * @param {HTMLElement} element - 目标元素
+     * @param {number} duration - 持续时间（毫秒）
      */
-    updateCountdown(text) {
-        try {
-            if (!this.countdownElement) {
-                this.logger.warn('倒计时元素未找到');
-                return;
-            }
+    fadeIn(element, duration = 300) {
+        if (!element) return Promise.resolve();
+        
+        return new Promise(resolve => {
+            element.style.opacity = '0';
+            element.style.transition = `opacity ${duration}ms ease-in-out`;
             
-            const animatedText = this.createAnimatedText(text);
-            this.countdownElement.innerHTML = animatedText;
+            setTimeout(() => {
+                element.style.opacity = '1';
+            }, 10);
             
-            this.logger.debug(`倒计时已更新: ${text}`);
-        } catch (error) {
-            this.logger.error('更新倒计时失�?, error);
-        }
+            setTimeout(() => {
+                element.style.transition = '';
+                resolve();
+            }, duration);
+        });
     }
     
     /**
-     * 清理方法
+     * 淡出动画
+     * @param {HTMLElement} element - 目标元素
+     * @param {number} duration - 持续时间（毫秒）
+     */
+    fadeOut(element, duration = 300) {
+        if (!element) return Promise.resolve();
+        
+        return new Promise(resolve => {
+            element.style.transition = `opacity ${duration}ms ease-in-out`;
+            element.style.opacity = '0';
+            
+            setTimeout(() => {
+                element.style.transition = '';
+                resolve();
+            }, duration);
+        });
+    }
+    
+    /**
+     * 清理资源
      */
     destroy() {
-        if (this.countdownElement) {
-            this.countdownElement.innerHTML = '';
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
         }
-        this.logger.debug('AnimationController已销�?);
+        logger.info('[AnimationController] 已清理');
     }
 }
 
-export default AnimationController;
-
-
-
+// 导出单例
+export const animationController = new AnimationController();

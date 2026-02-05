@@ -216,7 +216,8 @@ export const sinnerData = [
             { name: "黎明事务所收尾人", avatar: "assets/images/Sinclair/Sinclair-lin_ming.webp" },
             { name: "臼齿修船厂收尾人", avatar: "assets/images/Sinclair/Sinclair-jiu_chi.webp" },
             { name: "剑契组杀手", avatar: "assets/images/Sinclair/Sinclair-jian_qi.webp" },
-            { name: "黑兽-酉", avatar: "assets/images/Sinclair/Sinclair-ji.webp" }
+            { name: "黑兽-酉", avatar: "assets/images/Sinclair/Sinclair-ji.webp" },
+            { name: "蜘蛛巢小指子辈", avatar: "assets/images/Sinclair/Sinclair-zhizhu.webp" }
         ]
     },
     {
@@ -237,7 +238,8 @@ export const sinnerData = [
             { name: "拉·曼却领神父", avatar: "assets/images/Gregor/Gregor-la_manque.webp" },
             { name: "黑云会副会长", avatar: "assets/images/Gregor/Gregor-hei_yun.webp" },
             { name: "黑兽-巳", avatar: "assets/images/Gregor/Gregor-she.webp" },
-            { name: "埃德加家族继承人", avatar: "assets/images/Gregor/Gregor-ai_dejia.webp" }
+            { name: "埃德加家族继承人", avatar: "assets/images/Gregor/Gregor-ai_dejia.webp" },
+            { name: "脑叶公司E.G.O:目灯", avatar: "assets/images/Gregor/Gregor-LCE.webp" }
         ]
     },
     {
